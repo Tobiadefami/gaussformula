@@ -3,19 +3,20 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {CellError, ErrorType, SimpleCellAddress} from '../Cell'
-import {DependencyGraph} from '../DependencyGraph'
 import {
   Ast,
   AstNodeType,
-  buildCellErrorAst,
   CellAddress,
   CellRangeAst,
   CellReferenceAst,
   ParserWithCaching,
+  buildCellErrorAst,
 } from '../parser'
+import {CellError, ErrorType, SimpleCellAddress} from '../Cell'
 import {ColumnRangeAst, RowRangeAst} from '../parser/Ast'
+
 import {ColumnAddress} from '../parser/ColumnAddress'
+import {DependencyGraph} from '../DependencyGraph'
 import {RowAddress} from '../parser/RowAddress'
 
 export interface FormulaTransformer {
@@ -67,7 +68,8 @@ export abstract class Transformer implements FormulaTransformer {
       case AstNodeType.NUMBER:
       case AstNodeType.NAMED_EXPRESSION:
       case AstNodeType.ERROR_WITH_RAW_INPUT:
-      case AstNodeType.STRING: {
+      case AstNodeType.STRING:
+      case AstNodeType.GAUSSIAN_NUMBER: {
         return ast
       }
       case AstNodeType.PERCENT_OP:
@@ -82,7 +84,7 @@ export abstract class Transformer implements FormulaTransformer {
         return {
           ...ast,
           procedureName: ast.procedureName,
-          args: ast.args.map((arg) => this.transformAst(arg, address)),
+          args: ast.args.map((arg: Ast) => this.transformAst(arg, address)),
         }
       }
       case AstNodeType.PARENTHESIS: {
@@ -94,15 +96,19 @@ export abstract class Transformer implements FormulaTransformer {
       case AstNodeType.ARRAY: {
         return {
           ...ast,
-          args: ast.args.map((row) => row.map(val => this.transformAst(val, address)))
+          args: ast.args.map((row: Ast[]) => row.map((val: Ast) => this.transformAst(val, address)))
         }
       }
       default: {
-        return {
-          ...ast,
-          left: this.transformAst(ast.left, address),
-          right: this.transformAst(ast.right, address),
-        } as Ast
+        // We know these operations have left and right properties
+        if ('left' in ast && 'right' in ast) {
+          return {
+            ...ast,
+            left: this.transformAst((ast as any).left, address),
+            right: this.transformAst((ast as any).right, address),
+          } as Ast
+        }
+        return ast;
       }
     }
   }

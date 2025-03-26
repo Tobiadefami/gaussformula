@@ -3,14 +3,15 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {simpleCellAddress, SimpleCellAddress} from './Cell'
-import {Maybe} from './Maybe'
 import {Ast, AstNodeType} from './parser'
 import {
   CELL_REFERENCE_PATTERN,
   NAMED_EXPRESSION_PATTERN,
   R1C1_CELL_REFERENCE_PATTERN
 } from './parser/parser-consts'
+import {SimpleCellAddress, simpleCellAddress} from './Cell'
+
+import {Maybe} from './Maybe'
 
 export interface NamedExpression {
   name: string,
@@ -303,6 +304,7 @@ export const doesContainRelativeReferences = (ast: Ast): boolean => {
     case AstNodeType.STRING:
     case AstNodeType.ERROR:
     case AstNodeType.ERROR_WITH_RAW_INPUT:
+    case AstNodeType.GAUSSIAN_NUMBER:
       return false
     case AstNodeType.CELL_REFERENCE:
       return !ast.reference.isAbsolute()
@@ -333,12 +335,14 @@ export const doesContainRelativeReferences = (ast: Ast): boolean => {
     case AstNodeType.PARENTHESIS:
       return doesContainRelativeReferences(ast.expression)
     case AstNodeType.FUNCTION_CALL: {
-      return ast.args.some((arg) =>
+      return ast.args.some((arg: Ast) =>
         doesContainRelativeReferences(arg)
       )
     }
     case AstNodeType.ARRAY: {
-      return ast.args.some(row => row.some(arg => doesContainRelativeReferences(arg)))
+      return ast.args.some((row: Ast[]) => row.some((arg: Ast) => doesContainRelativeReferences(arg)))
     }
+    default:
+      return false
   }
 }

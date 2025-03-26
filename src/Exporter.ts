@@ -5,14 +5,23 @@
 
 import {CellError, ErrorType, SimpleCellAddress} from './Cell'
 import {CellValue, DetailedCellError} from './CellValue'
-import {Config} from './Config'
 import {CellValueChange, ChangeExporter} from './ContentChanges'
+import {
+  EmptyValue,
+  GaussianNumber,
+  InterpreterValue,
+  RawInterpreterValue,
+  getRawValue,
+  isExtendedNumber
+} from './interpreter/InterpreterValue'
+import {SheetIndexMappingFn, simpleCellAddressToString} from './parser/addressRepresentationConverters'
+
+import {AbsoluteCellRange} from './AbsoluteCellRange'
+import {Config} from './Config'
 import {ErrorMessage} from './error-message'
-import {EmptyValue, getRawValue, InterpreterValue, isExtendedNumber} from './interpreter/InterpreterValue'
-import {SimpleRangeValue} from './SimpleRangeValue'
 import {LazilyTransformingAstService} from './LazilyTransformingAstService'
 import {NamedExpressions} from './NamedExpressions'
-import {SheetIndexMappingFn, simpleCellAddressToString} from './parser/addressRepresentationConverters'
+import {SimpleRangeValue} from './SimpleRangeValue'
 
 export type ExportedChange = ExportedCellChange | ExportedNamedExpressionChange
 
@@ -46,7 +55,7 @@ export class ExportedCellChange {
 export class ExportedNamedExpressionChange {
   constructor(
     public readonly name: string,
-    public readonly newValue: CellValue | CellValue[][],
+    public readonly newValue: CellValue | CellValue[][]
   ) {
   }
 }
@@ -93,6 +102,8 @@ export class Exporter implements ChangeExporter<ExportedChange> {
   public exportValue(value: InterpreterValue): CellValue {
     if (value instanceof SimpleRangeValue) {
       return this.detailedError(new CellError(ErrorType.VALUE, ErrorMessage.ScalarExpected))
+    } else if (value instanceof GaussianNumber) {
+      return value as unknown as CellValue
     } else if (this.config.smartRounding && isExtendedNumber(value)) {
       return this.cellValueRounding(getRawValue(value))
     } else if (value instanceof CellError) {

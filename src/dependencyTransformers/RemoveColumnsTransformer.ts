@@ -3,13 +3,15 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {absoluteSheetReference, ErrorType, SimpleCellAddress} from '../Cell'
 import {Ast, CellAddress} from '../parser'
+import {ErrorType, SimpleCellAddress, absoluteSheetReference} from '../Cell'
+
 import {AddressWithColumn} from '../parser/Address'
-import {RowRangeAst} from '../parser/Ast'
+import {AstNodeType} from '../parser'
 import {ColumnAddress} from '../parser/ColumnAddress'
-import {RowAddress} from '../parser/RowAddress'
 import {ColumnsSpan} from '../Span'
+import {RowAddress} from '../parser/RowAddress'
+import {RowRangeAst} from '../parser/Ast'
 import {Transformer} from './Transformer'
 
 export class RemoveColumnsTransformer extends Transformer {
@@ -146,5 +148,15 @@ export class RemoveColumnsTransformer extends Transformer {
     } else {
       return [newStart || actualStart, newEnd || actualEnd]
     }
+  }
+
+  protected transformAst(ast: Ast, address: SimpleCellAddress): Ast {
+    // Handle Gaussian numbers by returning them unchanged
+    if (ast.type === AstNodeType.GAUSSIAN_NUMBER) {
+      return ast;
+    }
+    
+    // Call the parent class implementation for other AST node types
+    return super.transformAst(ast, address);
   }
 }

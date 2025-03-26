@@ -5,7 +5,9 @@
 
 import {CellError, ErrorType} from './Cell'
 
-export type NoErrorCellValue = number | string | boolean | null
+import {GaussianNumber} from './interpreter/InterpreterValue'
+
+export type NoErrorCellValue = number | string | boolean | null | GaussianNumber
 export type CellValue = NoErrorCellValue | DetailedCellError
 
 export class DetailedCellError {

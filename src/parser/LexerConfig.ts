@@ -3,9 +3,6 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {createToken, Lexer, TokenType} from 'chevrotain'
-import {ErrorType} from '../Cell'
-import {ParserConfig} from './ParserConfig'
 import {
   ALL_WHITESPACE_PATTERN,
   COLUMN_REFERENCE_PATTERN,
@@ -15,8 +12,12 @@ import {
   ROW_REFERENCE_PATTERN,
   UNICODE_LETTER_PATTERN,
 } from './parser-consts'
+import {Lexer, TokenType, createToken} from 'chevrotain'
+
 import {CellReferenceMatcher} from './CellReferenceMatcher'
+import {ErrorType} from '../Cell'
 import {NamedExpressionMatcher} from './NamedExpressionMatcher'
+import {ParserConfig} from './ParserConfig'
 
 export const AdditionOp = createToken({ name: 'AdditionOp', pattern: Lexer.NA })
 export const PlusOp = createToken({name: 'PlusOp', pattern: /\+/, categories: AdditionOp})
@@ -42,6 +43,7 @@ export const ArrayRParen = createToken({name: 'ArrayRParen', pattern: /}/})
 
 export const StringLiteral = createToken({name: 'StringLiteral', pattern: /"([^"\\]*(\\.[^"\\]*)*)"/})
 export const ErrorLiteral = createToken({name: 'ErrorLiteral', pattern: /#[A-Za-z0-9\/]+[?!]?/})
+export const GaussianLiteral = createToken({name: 'GaussianLiteral', pattern: /N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/})
 
 export const RangeSeparator = createToken({ name: 'RangeSeparator', pattern: new RegExp(RANGE_OPERATOR) })
 export const ColumnRange = createToken({ name: 'ColumnRange', pattern: new RegExp(`${COLUMN_REFERENCE_PATTERN}${RANGE_OPERATOR}${COLUMN_REFERENCE_PATTERN}`) })
@@ -78,6 +80,7 @@ export interface LexerConfig {
   WhiteSpace: TokenType,
   maxColumns: number,
   maxRows: number,
+  GaussianLiteral: TokenType,
 }
 
 /**
@@ -133,6 +136,7 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     ...inject,
     ColumnRange,
     RowRange,
+    GaussianLiteral,
     NumberLiteral,
     StringLiteral,
     ErrorLiteral,
@@ -158,7 +162,8 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     functionMapping,
     decimalSeparator: config.decimalSeparator,
     maxColumns: config.maxColumns,
-    maxRows: config.maxRows
+    maxRows: config.maxRows,
+    GaussianLiteral,
   }
 }
 

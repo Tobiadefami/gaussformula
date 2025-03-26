@@ -4,11 +4,13 @@
  */
 
 import {Config} from './Config'
+import {GaussianNumber} from './interpreter/InterpreterValue'
 import {Maybe} from './Maybe'
 
 export class NumberLiteralHelper {
   private readonly numberPattern: RegExp
   private readonly allThousandSeparatorsRegex: RegExp
+  private readonly gaussianPattern: RegExp = /^N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/
 
   constructor(
     private readonly config: Config
@@ -20,7 +22,16 @@ export class NumberLiteralHelper {
     this.allThousandSeparatorsRegex = new RegExp(`${thousandSeparator}`, 'g')
   }
 
-  public numericStringToMaybeNumber(input: string): Maybe<number> {
+  public numericStringToMaybeNumber(input: string): Maybe<number | GaussianNumber> {
+    const gaussianMatch = this.gaussianPattern.exec(input)
+    if (gaussianMatch) {
+      const mean = Number(gaussianMatch[1])
+      const variance = Number(gaussianMatch[2])
+      if (!isNaN(mean) && !isNaN(variance)) {
+        return new GaussianNumber(mean, variance)
+      }
+    }
+
     if (this.numberPattern.test(input)) {
       const num = this.numericStringToNumber(input)
       if (isNaN(num)) {

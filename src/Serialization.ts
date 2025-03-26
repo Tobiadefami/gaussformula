@@ -3,15 +3,27 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {simpleCellAddress, SimpleCellAddress} from './Cell'
-import {RawCellContent} from './CellContentParser'
+import {ArrayVertex, DependencyGraph, FormulaCellVertex, ParsingErrorVertex} from './DependencyGraph'
+import {CellError, ErrorType} from './Cell'
+import {
+  EmptyValue,
+  GaussianNumber,
+  InterpreterValue,
+  RawInterpreterValue,
+  getRawValue as getInterpreterRawValue
+} from './interpreter/InterpreterValue'
+import {NamedExpressionOptions, NamedExpressions} from './NamedExpressions'
+import {ProcedureAst, Unparser, buildLexerConfig} from './parser'
+import {SimpleCellAddress, simpleCellAddress} from './Cell'
+
+import {AbsoluteCellRange} from './AbsoluteCellRange'
 import {CellValue} from './CellValue'
 import {Config} from './Config'
-import {ArrayVertex, DependencyGraph, FormulaCellVertex, ParsingErrorVertex} from './DependencyGraph'
+import {ErrorMessage} from './error-message'
 import {Exporter} from './Exporter'
 import {Maybe} from './Maybe'
-import {NamedExpressionOptions, NamedExpressions} from './NamedExpressions'
-import {buildLexerConfig, ProcedureAst, Unparser} from './parser'
+import {RawCellContent} from './CellContentParser'
+import {SheetIndexMappingFn} from './parser/addressRepresentationConverters'
 
 export interface SerializedNamedExpression {
   name: string,
@@ -24,7 +36,8 @@ export class Serialization {
   constructor(
     private readonly dependencyGraph: DependencyGraph,
     private readonly unparser: Unparser,
-    private readonly exporter: Exporter
+    private readonly exporter: Exporter,
+    private readonly config: Config
   ) {
   }
 
@@ -70,7 +83,16 @@ export class Serialization {
   }
 
   public getRawValue(address: SimpleCellAddress): RawCellContent {
-    return this.dependencyGraph.getRawValue(address)
+    const value = this.dependencyGraph.getScalarValue(address)
+    if (value === EmptyValue) {
+      return null
+    } else if (value instanceof GaussianNumber) {
+      return `G(${value.mean}, ${value.variance})`
+    } else if (value instanceof CellError) {
+      return this.config.translationPackage.getErrorTranslation(value.type)
+    } else {
+      return getInterpreterRawValue(value)
+    }
   }
 
   public getSheetValues(sheet: number): CellValue[][] {
@@ -157,6 +179,6 @@ export class Serialization {
 
   public withNewConfig(newConfig: Config, namedExpressions: NamedExpressions): Serialization {
     const newUnparser = new Unparser(newConfig, buildLexerConfig(newConfig), this.dependencyGraph.sheetMapping.fetchDisplayName, namedExpressions)
-    return new Serialization(this.dependencyGraph, newUnparser, this.exporter)
+    return new Serialization(this.dependencyGraph, newUnparser, this.exporter, newConfig)
   }
 }

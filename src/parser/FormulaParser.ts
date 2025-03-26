@@ -4,29 +4,45 @@
  */
 
 import {
-  EmbeddedActionsParser,
-  EMPTY_ALT,
-  ILexingResult,
-  IOrAlt,
-  IToken,
-  Lexer,
-  OrMethodOpts,
-  tokenMatcher
-} from 'chevrotain'
-
-import {CellError, ErrorType, simpleCellAddress, SimpleCellAddress} from '../Cell'
-import {ErrorMessage} from '../error-message'
-import {Maybe} from '../Maybe'
-import {
-  cellAddressFromString,
-  columnAddressFromString,
-  rowAddressFromString,
-  SheetMappingFn,
-} from './addressRepresentationConverters'
+  AdditionOp,
+  ArrayLParen,
+  ArrayRParen,
+  BooleanOp,
+  CellReference,
+  ColumnRange,
+  ConcatenateOp,
+  DivOp,
+  EqualsOp,
+  ErrorLiteral,
+  GreaterThanOp,
+  GreaterThanOrEqualOp,
+  LParen,
+  LessThanOp,
+  LessThanOrEqualOp,
+  LexerConfig,
+  MinusOp,
+  MultiplicationOp,
+  NamedExpression,
+  NotEqualOp,
+  PercentOp,
+  PlusOp,
+  PowerOp,
+  ProcedureName,
+  RParen,
+  RangeSeparator,
+  RowRange,
+  StringLiteral,
+  TimesOp,
+} from './LexerConfig'
 import {
   ArrayAst,
   Ast,
   AstNodeType,
+  CellReferenceAst,
+  ErrorAst,
+  ParsingError,
+  ParsingErrorType,
+  RangeSheetReferenceType,
   buildArrayAst,
   buildCellErrorAst,
   buildCellRangeAst,
@@ -37,6 +53,7 @@ import {
   buildEmptyArgAst,
   buildEqualsOpAst,
   buildErrorWithRawInputAst,
+  buildGaussianNumberAst,
   buildGreaterThanOpAst,
   buildGreaterThanOrEqualOpAst,
   buildLessThanOpAst,
@@ -56,46 +73,41 @@ import {
   buildRowRangeAst,
   buildStringAst,
   buildTimesOpAst,
-  CellReferenceAst,
-  ErrorAst,
   parsingError,
-  ParsingError,
-  ParsingErrorType,
-  RangeSheetReferenceType,
 } from './Ast'
 import {CellAddress, CellReferenceType} from './CellAddress'
+import {CellError, ErrorType, SimpleCellAddress, simpleCellAddress} from '../Cell'
 import {
-  AdditionOp,
-  ArrayLParen,
-  ArrayRParen,
-  BooleanOp,
-  CellReference,
-  ColumnRange,
-  ConcatenateOp,
-  DivOp,
-  EqualsOp,
-  ErrorLiteral,
-  GreaterThanOp,
-  GreaterThanOrEqualOp,
-  LexerConfig,
-  LessThanOp,
-  LessThanOrEqualOp,
-  LParen,
-  MinusOp,
-  MultiplicationOp,
-  NamedExpression,
-  NotEqualOp,
-  PercentOp,
-  PlusOp,
-  PowerOp,
-  ProcedureName,
-  RangeSeparator,
-  RowRange,
-  RParen,
-  StringLiteral,
-  TimesOp,
-} from './LexerConfig'
+  CurrencyNumber,
+  DateNumber,
+  DateTimeNumber,
+  ExtendedNumber,
+  GaussianNumber,
+  PercentNumber,
+  TimeNumber,
+  cloneNumber,
+  getRawValue
+} from '../interpreter/InterpreterValue'
+import {
+  EMPTY_ALT,
+  EmbeddedActionsParser,
+  ILexingResult,
+  IOrAlt,
+  IToken,
+  Lexer,
+  OrMethodOpts,
+  tokenMatcher
+} from 'chevrotain'
+import {
+  SheetMappingFn,
+  cellAddressFromString,
+  columnAddressFromString,
+  rowAddressFromString,
+} from './addressRepresentationConverters'
+
 import {AddressWithSheet} from './Address'
+import {ErrorMessage} from '../error-message'
+import {Maybe} from '../Maybe'
 
 export interface FormulaParserResult {
   ast: Ast,
@@ -507,7 +519,20 @@ export class FormulaParser extends EmbeddedActionsParser {
    * Rule for positive atomic expressions
    */
   private positiveAtomicExpression: AstRule = this.RULE('positiveAtomicExpression', () => {
-    return this.OR(this.atomicExpCache ?? (this.atomicExpCache = [
+    const alt = this.OR([
+      {
+        ALT: () => {
+          const gaussianToken = this.CONSUME(this.lexerConfig.GaussianLiteral) as ExtendedToken
+          const match = /N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/.exec(gaussianToken.image)
+          if (match) {
+            const mean = this.numericStringToNumber(match[1])
+            const variance = this.numericStringToNumber(match[2])
+            return buildGaussianNumberAst(new GaussianNumber(mean, variance), gaussianToken.leadingWhitespace)
+          } else {
+            return buildParsingErrorAst()
+          }
+        }
+      },
       {
         ALT: () => this.SUBRULE(this.arrayExpression),
       },
@@ -556,7 +581,8 @@ export class FormulaParser extends EmbeddedActionsParser {
           }
         },
       },
-    ]))
+    ])
+    return alt
   })
 
   private rightUnaryOpAtomicExpression: AstRule = this.RULE('rightUnaryOpAtomicExpression', () => {

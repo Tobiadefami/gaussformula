@@ -3,10 +3,11 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
+import {AstNodeType, RelativeDependency, collectDependencies} from './'
+
+import {Ast} from './Ast'
 import {FunctionRegistry} from '../interpreter/FunctionRegistry'
 import {Maybe} from '../Maybe'
-import {AstNodeType, collectDependencies, RelativeDependency} from './'
-import {Ast} from './Ast'
 
 export interface CacheEntry {
   ast: Ast,
@@ -54,47 +55,36 @@ export class Cache {
 
 export const doesContainFunctions = (ast: Ast, functionCriterion: (functionId: string) => boolean): boolean => {
   switch (ast.type) {
-    case AstNodeType.EMPTY:
-    case AstNodeType.NUMBER:
-    case AstNodeType.STRING:
-    case AstNodeType.ERROR:
-    case AstNodeType.ERROR_WITH_RAW_INPUT:
-    case AstNodeType.CELL_REFERENCE:
+    case AstNodeType.FUNCTION_CALL: {
+      return functionCriterion(ast.procedureName.toLowerCase()) || ast.args.some(arg => doesContainFunctions(arg, functionCriterion))
+    }
+    case AstNodeType.PARENTHESIS: {
+      return doesContainFunctions(ast.expression, functionCriterion)
+    }
     case AstNodeType.CELL_RANGE:
     case AstNodeType.COLUMN_RANGE:
-    case AstNodeType.ROW_RANGE:
-    case AstNodeType.NAMED_EXPRESSION:
+    case AstNodeType.ROW_RANGE: {
       return false
-    case AstNodeType.PERCENT_OP:
-    case AstNodeType.PLUS_UNARY_OP:
-    case AstNodeType.MINUS_UNARY_OP: {
-      return doesContainFunctions(ast.value, functionCriterion)
-    }
-    case AstNodeType.CONCATENATE_OP:
-    case AstNodeType.EQUALS_OP:
-    case AstNodeType.NOT_EQUAL_OP:
-    case AstNodeType.LESS_THAN_OP:
-    case AstNodeType.GREATER_THAN_OP:
-    case AstNodeType.LESS_THAN_OR_EQUAL_OP:
-    case AstNodeType.GREATER_THAN_OR_EQUAL_OP:
-    case AstNodeType.MINUS_OP:
-    case AstNodeType.PLUS_OP:
-    case AstNodeType.TIMES_OP:
-    case AstNodeType.DIV_OP:
-    case AstNodeType.POWER_OP:
-      return doesContainFunctions(ast.left, functionCriterion) || doesContainFunctions(ast.right, functionCriterion)
-    case AstNodeType.PARENTHESIS:
-      return doesContainFunctions(ast.expression, functionCriterion)
-    case AstNodeType.FUNCTION_CALL: {
-      if (functionCriterion(ast.procedureName)) {
-        return true
-      }
-      return ast.args.some((arg) =>
-        doesContainFunctions(arg, functionCriterion)
-      )
     }
     case AstNodeType.ARRAY: {
       return ast.args.some(row => row.some(arg => doesContainFunctions(arg, functionCriterion)))
+    }
+    case AstNodeType.NUMBER:
+    case AstNodeType.STRING:
+    case AstNodeType.CELL_REFERENCE:
+    case AstNodeType.NAMED_EXPRESSION:
+    case AstNodeType.ERROR:
+    case AstNodeType.ERROR_WITH_RAW_INPUT:
+    case AstNodeType.EMPTY:
+    case AstNodeType.GAUSSIAN_NUMBER:
+      return false
+    default: {
+      if ('left' in ast && 'right' in ast) {
+        return doesContainFunctions(ast.left, functionCriterion) || doesContainFunctions(ast.right, functionCriterion)
+      } else if ('value' in ast) {
+        return doesContainFunctions(ast.value, functionCriterion)
+      }
+      return false
     }
   }
 }

@@ -3,22 +3,23 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {ErrorType, SimpleCellAddress} from '../Cell'
-import {NoSheetWithIdError} from '../index'
-import {NamedExpressions} from '../NamedExpressions'
-import {SheetIndexMappingFn, sheetIndexToString} from './addressRepresentationConverters'
 import {
   Ast,
   AstNodeType,
   CellRangeAst,
   ColumnRangeAst,
-  imageWithWhitespace,
   RangeSheetReferenceType,
   RowRangeAst,
+  imageWithWhitespace,
 } from './Ast'
-import {binaryOpTokenMap} from './binaryOpTokenMap'
+import {ErrorType, SimpleCellAddress} from '../Cell'
+import {SheetIndexMappingFn, sheetIndexToString} from './addressRepresentationConverters'
+
 import {LexerConfig} from './LexerConfig'
+import {NamedExpressions} from '../NamedExpressions'
+import {NoSheetWithIdError} from '../index'
 import {ParserConfig} from './ParserConfig'
+import {binaryOpTokenMap} from './binaryOpTokenMap'
 
 export class Unparser {
   constructor(
@@ -40,6 +41,9 @@ export class Unparser {
       }
       case AstNodeType.NUMBER: {
         return imageWithWhitespace(formatNumber(ast.value, this.config.decimalSeparator), ast.leadingWhitespace)
+      }
+      case AstNodeType.GAUSSIAN_NUMBER: {
+        return imageWithWhitespace(`G(${formatNumber(ast.value.mean, this.config.decimalSeparator)}, ${formatNumber(ast.value.variance, this.config.decimalSeparator)})`, ast.leadingWhitespace)
       }
       case AstNodeType.STRING: {
         return imageWithWhitespace('"' + ast.value + '"', ast.leadingWhitespace)

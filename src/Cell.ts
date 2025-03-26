@@ -4,20 +4,21 @@
  */
 
 import {ArrayVertex, CellVertex, FormulaCellVertex, ParsingErrorVertex, ValueCellVertex} from './DependencyGraph'
-import {FormulaVertex} from './DependencyGraph/FormulaCellVertex'
-import {ErrorMessage} from './error-message'
 import {
   EmptyValue,
+  InterpreterValue,
+  NumberType,
   getFormatOfExtendedNumber,
   getTypeOfExtendedNumber,
-  InterpreterValue,
   isExtendedNumber,
-  NumberType,
 } from './interpreter/InterpreterValue'
-import {SimpleRangeValue} from './SimpleRangeValue'
-import {Maybe} from './Maybe'
-import {CellAddress} from './parser'
+
 import {AddressWithSheet} from './parser/Address'
+import {CellAddress} from './parser'
+import {ErrorMessage} from './error-message'
+import {FormulaVertex} from './DependencyGraph/FormulaCellVertex'
+import {Maybe} from './Maybe'
+import {SimpleRangeValue} from './SimpleRangeValue'
 
 /**
  * Possible errors returned by our interpreter.
@@ -207,7 +208,7 @@ export const addressKey = (address: SimpleCellAddress) => `${address.sheet},${ad
  * Checks if the object is a simple cell address.
  */
 export function isSimpleCellAddress(obj: unknown): obj is SimpleCellAddress {
-  return obj
+  return obj !== null
     && (typeof obj === 'object' || typeof obj === 'function')
     && typeof (obj as SimpleCellAddress)?.sheet === 'number'
     && typeof (obj as SimpleCellAddress)?.col === 'number'

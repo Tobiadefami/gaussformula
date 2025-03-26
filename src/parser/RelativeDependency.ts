@@ -4,18 +4,46 @@
  */
 
 import {AbsoluteCellRange, AbsoluteColumnRange, AbsoluteRowRange} from '../AbsoluteCellRange'
-import {SimpleCellAddress} from '../Cell'
+
 import {CellAddress} from './'
 import {ColumnAddress} from './ColumnAddress'
 import {RowAddress} from './RowAddress'
+import {SimpleCellAddress} from '../Cell'
+
+// Define a class that exists at runtime
+export class RelativeDependency {
+  // Base implementation that will be overridden
+  public absolutize(baseAddress: SimpleCellAddress): any {
+    throw new Error('Method not implemented.');
+  }
+}
 
 export type RangeDependency = CellRangeDependency | ColumnRangeDependency | RowRangeDependency
-export type RelativeDependency = AddressDependency | RangeDependency | NamedExpressionDependency
 
-export class AddressDependency {
+// Create a dummy object for RangeDependency that can be exported at runtime
+export const RangeDependency = {
+  isCellRangeDependency: (dep: RelativeDependency): dep is CellRangeDependency => dep instanceof CellRangeDependency,
+  isColumnRangeDependency: (dep: RelativeDependency): dep is ColumnRangeDependency => dep instanceof ColumnRangeDependency,
+  isRowRangeDependency: (dep: RelativeDependency): dep is RowRangeDependency => dep instanceof RowRangeDependency
+}
+
+// Keep the type for TypeScript usage
+export type RelativeDependencyType = AddressDependency | RangeDependency | NamedExpressionDependency
+
+// Create a dummy object that can be exported at runtime
+export const RelativeDependencyType = {
+  isAddressDependency: (dep: RelativeDependency): dep is AddressDependency => dep instanceof AddressDependency,
+  isCellRangeDependency: (dep: RelativeDependency): dep is CellRangeDependency => dep instanceof CellRangeDependency,
+  isColumnRangeDependency: (dep: RelativeDependency): dep is ColumnRangeDependency => dep instanceof ColumnRangeDependency,
+  isRowRangeDependency: (dep: RelativeDependency): dep is RowRangeDependency => dep instanceof RowRangeDependency,
+  isNamedExpressionDependency: (dep: RelativeDependency): dep is NamedExpressionDependency => dep instanceof NamedExpressionDependency
+}
+
+export class AddressDependency extends RelativeDependency {
   constructor(
     public readonly dependency: CellAddress
   ) {
+    super();
   }
 
   public absolutize(baseAddress: SimpleCellAddress) {
@@ -23,11 +51,12 @@ export class AddressDependency {
   }
 }
 
-export class CellRangeDependency {
+export class CellRangeDependency extends RelativeDependency {
   constructor(
     public readonly start: CellAddress,
     public readonly end: CellAddress,
   ) {
+    super();
   }
 
   public absolutize(baseAddress: SimpleCellAddress) {
@@ -38,11 +67,12 @@ export class CellRangeDependency {
   }
 }
 
-export class ColumnRangeDependency {
+export class ColumnRangeDependency extends RelativeDependency {
   constructor(
     public readonly start: ColumnAddress,
     public readonly end: ColumnAddress,
   ) {
+    super();
   }
 
   public absolutize(baseAddress: SimpleCellAddress) {
@@ -52,11 +82,12 @@ export class ColumnRangeDependency {
   }
 }
 
-export class RowRangeDependency {
+export class RowRangeDependency extends RelativeDependency {
   constructor(
     public readonly start: RowAddress,
     public readonly end: RowAddress,
   ) {
+    super();
   }
 
   public absolutize(baseAddress: SimpleCellAddress) {
@@ -66,10 +97,11 @@ export class RowRangeDependency {
   }
 }
 
-export class NamedExpressionDependency {
+export class NamedExpressionDependency extends RelativeDependency {
   constructor(
     public readonly name: string
   ) {
+    super();
   }
 
   public absolutize(_baseAddress: SimpleCellAddress) {

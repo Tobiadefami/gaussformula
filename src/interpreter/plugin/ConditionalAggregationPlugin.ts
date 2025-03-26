@@ -6,7 +6,7 @@
 import {CellError, ErrorType} from '../../Cell'
 import {ErrorMessage} from '../../error-message'
 import {Maybe} from '../../Maybe'
-import {ProcedureAst} from '../../parser'
+import {ProcedureAst} from '../../parser/Ast'
 import {Condition, CriterionFunctionCompute} from '../CriterionFunctionCompute'
 import {InterpreterState} from '../InterpreterState'
 import {

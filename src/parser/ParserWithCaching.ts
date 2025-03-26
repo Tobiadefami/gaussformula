@@ -3,32 +3,33 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {IToken, tokenMatcher, ILexingResult} from 'chevrotain'
-import {ErrorType, SimpleCellAddress} from '../Cell'
-import {FunctionRegistry} from '../interpreter/FunctionRegistry'
-import {AstNodeType, buildParsingErrorAst, CellAddress, collectDependencies, RelativeDependency} from './'
+import {Ast, ParsingError, ParsingErrorType, RangeSheetReferenceType, imageWithWhitespace} from './Ast'
+import {AstNodeType, CellAddress, RelativeDependency, buildParsingErrorAst, collectDependencies} from './'
 import {
-  cellAddressFromString,
-  columnAddressFromString,
-  rowAddressFromString,
-  SheetMappingFn,
-} from './addressRepresentationConverters'
-import {Ast, imageWithWhitespace, ParsingError, ParsingErrorType, RangeSheetReferenceType} from './Ast'
-import {binaryOpTokenMap} from './binaryOpTokenMap'
-import {Cache} from './Cache'
-import {FormulaLexer, FormulaParser, ExtendedToken} from './FormulaParser'
-import {
-  buildLexerConfig,
   CellReference,
   ColumnRange,
   LexerConfig,
   ProcedureName,
   RowRange,
+  buildLexerConfig,
 } from './LexerConfig'
-import {ParserConfig} from './ParserConfig'
-import {formatNumber} from './Unparser'
+import {ErrorType, SimpleCellAddress} from '../Cell'
+import {ExtendedToken, FormulaLexer, FormulaParser} from './FormulaParser'
+import {ILexingResult, IToken, tokenMatcher} from 'chevrotain'
+import {
+  SheetMappingFn,
+  cellAddressFromString,
+  columnAddressFromString,
+  rowAddressFromString,
+} from './addressRepresentationConverters'
+
+import {Cache} from './Cache'
 import {ColumnAddress} from './ColumnAddress'
+import {FunctionRegistry} from '../interpreter/FunctionRegistry'
+import {ParserConfig} from './ParserConfig'
 import {RowAddress} from './RowAddress'
+import {binaryOpTokenMap} from './binaryOpTokenMap'
+import {formatNumber} from './Unparser'
 
 export interface ParsingResult {
   ast: Ast,
@@ -118,6 +119,7 @@ export class ParserWithCaching {
       case AstNodeType.ERROR_WITH_RAW_INPUT:
       case AstNodeType.CELL_REFERENCE:
       case AstNodeType.NAMED_EXPRESSION:
+      case AstNodeType.GAUSSIAN_NUMBER:
         return ast
       case AstNodeType.CELL_RANGE: {
         const { start, end } = ast
@@ -168,6 +170,8 @@ export class ParserWithCaching {
         const argsFixed = ast.args.map(argsRow => argsRow.map(arg => this.convertReversedRangesToRegularRanges(arg)))
         return { ...ast, args: argsFixed }
       }
+      default:
+        return ast;
     }
   }
 
@@ -288,6 +292,10 @@ export class ParserWithCaching {
       case AstNodeType.STRING: {
         return imageWithWhitespace('"' + ast.value + '"', ast.leadingWhitespace)
       }
+      case AstNodeType.GAUSSIAN_NUMBER: {
+        const gaussianAst = ast as any
+        return imageWithWhitespace(`G(${gaussianAst.value.mean}, ${gaussianAst.value.variance})`, ast.leadingWhitespace)
+      }
       case AstNodeType.NAMED_EXPRESSION: {
         return imageWithWhitespace(ast.expressionName, ast.leadingWhitespace)
       }
@@ -334,7 +342,10 @@ export class ParserWithCaching {
         return imageWithWhitespace(rightPart, ast.leadingWhitespace)
       }
       default: {
-        return this.computeHashOfAstNode(ast.left) + imageWithWhitespace(binaryOpTokenMap[ast.type], ast.leadingWhitespace) + this.computeHashOfAstNode(ast.right)
+        if ('left' in ast && 'right' in ast) {
+          return this.computeHashOfAstNode((ast as any).left) + imageWithWhitespace(binaryOpTokenMap[ast.type], ast.leadingWhitespace) + this.computeHashOfAstNode((ast as any).right)
+        }
+        return imageWithWhitespace(String((ast as any).type), (ast as any).leadingWhitespace || '')
       }
     }
   }

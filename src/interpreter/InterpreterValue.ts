@@ -94,11 +94,22 @@ export enum NumberType {
   NUMBER_DATETIME = 'NUMBER_DATETIME',
   NUMBER_CURRENCY = 'NUMBER_CURRENCY',
   NUMBER_PERCENT = 'NUMBER_PERCENT',
+  NUMBER_GAUSSIAN = 'NUMBER_GAUSSIAN'
 }
 
-export function getTypeOfExtendedNumber(num: ExtendedNumber): NumberType {
-  if (num instanceof RichNumber) {
-    return num.getDetailedType()
+export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
+  if (value instanceof CurrencyNumber) {
+    return NumberType.NUMBER_CURRENCY
+  } else if (value instanceof PercentNumber) {
+    return NumberType.NUMBER_PERCENT
+  } else if (value instanceof DateNumber) {
+    return NumberType.NUMBER_DATE
+  } else if (value instanceof TimeNumber) {
+    return NumberType.NUMBER_TIME
+  } else if (value instanceof DateTimeNumber) {
+    return NumberType.NUMBER_DATETIME
+  } else if (value instanceof GaussianNumber) {
+    return NumberType.NUMBER_GAUSSIAN
   } else {
     return NumberType.NUMBER_RAW
   }
@@ -121,6 +132,20 @@ export function getTypeFormatOfExtendedNumber(num: ExtendedNumber): NumberTypeWi
     return {type: num.getDetailedType(), format: num.format}
   } else {
     return {type: NumberType.NUMBER_RAW}
+  }
+}
+
+export class GaussianNumber extends RichNumber {
+  constructor(public readonly mean: number, public readonly variance: number) {
+    super(mean)
+  }
+
+  public getDetailedType(): NumberType {
+    return NumberType.NUMBER_GAUSSIAN
+  }
+
+  public fromNumber(val: number): this {
+    return new GaussianNumber(val, this.variance) as this
   }
 }
 
