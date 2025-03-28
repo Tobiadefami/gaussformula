@@ -43,7 +43,7 @@ export class Unparser {
         return imageWithWhitespace(formatNumber(ast.value, this.config.decimalSeparator), ast.leadingWhitespace)
       }
       case AstNodeType.GAUSSIAN_NUMBER: {
-        return imageWithWhitespace(`G(${formatNumber(ast.value.mean, this.config.decimalSeparator)}, ${formatNumber(ast.value.variance, this.config.decimalSeparator)})`, ast.leadingWhitespace)
+        return imageWithWhitespace(`N(${formatNumber(ast.value.mean, this.config.decimalSeparator)}, ${formatNumber(ast.value.variance, this.config.decimalSeparator)})`, ast.leadingWhitespace)
       }
       case AstNodeType.STRING: {
         return imageWithWhitespace('"' + ast.value + '"', ast.leadingWhitespace)

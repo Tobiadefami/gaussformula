@@ -150,11 +150,6 @@ export class CellContentParser {
         }
       }
 
-      // If the content starts with G but doesn't match the exact format, treat it as a string
-      if (content.trim().startsWith('G')) {
-        return new CellContent.String(content)
-      }
-
       let trimmedContent = content.trim()
       let mode = 0
       let currency

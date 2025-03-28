@@ -294,7 +294,7 @@ export class ParserWithCaching {
       }
       case AstNodeType.GAUSSIAN_NUMBER: {
         const gaussianAst = ast as any
-        return imageWithWhitespace(`G(${gaussianAst.value.mean}, ${gaussianAst.value.variance})`, ast.leadingWhitespace)
+        return imageWithWhitespace(`N(${gaussianAst.value.mean}, ${gaussianAst.value.variance})`, ast.leadingWhitespace)
       }
       case AstNodeType.NAMED_EXPRESSION: {
         return imageWithWhitespace(ast.expressionName, ast.leadingWhitespace)

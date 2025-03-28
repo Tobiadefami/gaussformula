@@ -87,7 +87,7 @@ export class Serialization {
     if (value === EmptyValue) {
       return null
     } else if (value instanceof GaussianNumber) {
-      return `G(${value.mean}, ${value.variance})`
+      return `N(${value.mean}, ${value.variance})`
     } else if (value instanceof CellError) {
       return this.config.translationPackage.getErrorTranslation(value.type)
     } else {
