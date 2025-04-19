@@ -11,6 +11,7 @@ import {
   GaussianNumber,
   InterpreterValue,
   RawInterpreterValue,
+  SampledDistribution,
   getRawValue,
   isExtendedNumber
 } from './interpreter/InterpreterValue'
@@ -100,18 +101,22 @@ export class Exporter implements ChangeExporter<ExportedChange> {
   }
 
   public exportValue(value: InterpreterValue): CellValue {
-    if (value instanceof SimpleRangeValue) {
-      return this.detailedError(new CellError(ErrorType.VALUE, ErrorMessage.ScalarExpected))
+    if (value === EmptyValue) {
+      return null
     } else if (value instanceof GaussianNumber) {
-      return value as unknown as CellValue
-    } else if (this.config.smartRounding && isExtendedNumber(value)) {
-      return this.cellValueRounding(getRawValue(value))
+      return value
+    } else if (value instanceof SampledDistribution) {
+      return value
     } else if (value instanceof CellError) {
       return this.detailedError(value)
-    } else if (value === EmptyValue) {
-      return null
+    } else if (isExtendedNumber(value)) {
+      if (this.config.smartRounding) {
+        return this.cellValueRounding(getRawValue(value))
+      } else {
+        return getRawValue(value)
+      }
     } else {
-      return getRawValue(value)
+      return value
     }
   }
 

@@ -10,6 +10,7 @@ import {
   GaussianNumber,
   InterpreterValue,
   RawInterpreterValue,
+  SampledDistribution,
   getRawValue as getInterpreterRawValue
 } from './interpreter/InterpreterValue'
 import {NamedExpressionOptions, NamedExpressions} from './NamedExpressions'
@@ -87,7 +88,11 @@ export class Serialization {
     if (value === EmptyValue) {
       return null
     } else if (value instanceof GaussianNumber) {
-      return `N(${value.mean}, ${value.variance})`
+      return `N(μ=${value.mean.toFixed(2)}, σ²=${value.variance.toFixed(2)})`
+    } else if (value instanceof SampledDistribution) {
+      const mean = value.getMean();
+      const variance = value.getVariance();
+      return `S[${value.getSamples().length}](μ=${mean.toFixed(2)}, σ²=${variance.toFixed(2)})`
     } else if (value instanceof CellError) {
       return this.config.translationPackage.getErrorTranslation(value.type)
     } else {

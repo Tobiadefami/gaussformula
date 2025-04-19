@@ -94,7 +94,8 @@ export enum NumberType {
   NUMBER_DATETIME = 'NUMBER_DATETIME',
   NUMBER_CURRENCY = 'NUMBER_CURRENCY',
   NUMBER_PERCENT = 'NUMBER_PERCENT',
-  NUMBER_GAUSSIAN = 'NUMBER_GAUSSIAN'
+  NUMBER_GAUSSIAN = 'NUMBER_GAUSSIAN',
+  NUMBER_SAMPLED = 'NUMBER_SAMPLED'
 }
 
 export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
@@ -135,17 +136,84 @@ export function getTypeFormatOfExtendedNumber(num: ExtendedNumber): NumberTypeWi
   }
 }
 
-export class GaussianNumber extends RichNumber {
-  constructor(public readonly mean: number, public readonly variance: number) {
-    super(mean)
+export class SampledDistribution extends RichNumber {
+  private readonly samples: number[];
+
+
+  constructor(samples: number[]) {
+    super(0);
+    const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+    this.val = mean;
+    this.samples = samples;
+  }
+
+  public getSamples(): number[] {
+    return this.samples;
+  }
+
+  public getMean(): number {
+    return this.val;
+  }
+
+  public getVariance(): number {
+    const mean = this.getMean();
+    return this.samples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / this.samples.length;
   }
 
   public getDetailedType(): NumberType {
-    return NumberType.NUMBER_GAUSSIAN
+    return NumberType.NUMBER_SAMPLED;
   }
 
   public fromNumber(val: number): this {
-    return new GaussianNumber(val, this.variance) as this
+    const newSamples = this.samples.map(s => s - this.getMean() + val);
+    return new SampledDistribution(newSamples) as this;
+  }
+}
+
+export class GaussianNumber extends RichNumber {
+  private samples: number[] | null = null;
+  private readonly SAMPLE_SIZE = 10000;
+
+  constructor(public readonly mean: number, public readonly variance: number) {
+    super(mean)
+    this.generateSamples();
+  }
+
+  private generateSamples() {
+    this.samples = new Array(this.SAMPLE_SIZE);
+    for (let i = 0; i < this.SAMPLE_SIZE; i++) {
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+      this.samples[i] = this.mean + Math.sqrt(this.variance) * z0;
+    }
+  }
+
+  public getSamples(): number[] {
+    if (!this.samples) {
+      this.generateSamples();
+    }
+    return this.samples!;
+  }
+
+  public getDetailedType(): NumberType {
+    return NumberType.NUMBER_GAUSSIAN;
+  }
+
+  public fromNumber(val: number): this {
+    return new GaussianNumber(val, this.variance) as this;
+  }
+
+  public static preservesNormality(left: ExtendedNumber, right: ExtendedNumber, operation: string): boolean {
+    if (operation === '+' || operation === '-') {
+      return true;
+    }
+    
+    if (operation === '*' || operation === '/') {
+      return !(left instanceof GaussianNumber && right instanceof GaussianNumber);
+    }
+    
+    return false;
   }
 }
 

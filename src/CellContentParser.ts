@@ -11,6 +11,7 @@ import {
   ExtendedNumber,
   GaussianNumber,
   PercentNumber,
+  SampledDistribution,
   TimeNumber,
   cloneNumber,
   getRawValue
@@ -147,6 +148,24 @@ export class CellContentParser {
         const variance = Number(gaussianMatch[2])
         if (!isNaN(mean) && !isNaN(variance)) {
           return new CellContent.Number(new GaussianNumber(mean, variance))
+        }
+      }
+
+      // Try to parse as SampledDistribution
+      const sampledMatch = /^S\[(\d+)\]\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3=([+-]?\d*\.?\d+)\)$/.exec(content)
+      if (sampledMatch) {
+        const sampleCount = Number(sampledMatch[1])
+        const mean = Number(sampledMatch[2])
+        const std = Number(sampledMatch[3])
+        if (!isNaN(sampleCount) && !isNaN(mean) && !isNaN(std)) {
+          // Generate samples based on mean and std
+          const samples = Array.from({length: sampleCount}, () => {
+            const u1 = Math.random();
+            const u2 = Math.random();
+            const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+            return mean + std * z0;
+          });
+          return new CellContent.Number(new SampledDistribution(samples))
         }
       }
 

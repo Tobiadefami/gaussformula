@@ -20,6 +20,7 @@ import {
   RawInterpreterValue,
   RawNoErrorScalarValue,
   RawScalarValue,
+  SampledDistribution,
   TimeNumber,
   cloneNumber,
   getRawValue,
@@ -164,24 +165,38 @@ export class ArithmeticHelper {
     return this.ExtendedNumberFactory(this.addWithEpsilonRaw(getRawValue(left), getRawValue(right)), typeOfResult)
   }
 
-  private addGaussians(left: ExtendedNumber, right: ExtendedNumber): GaussianNumber {
-    const leftMean = left instanceof GaussianNumber ? left.mean : getRawValue(left)
-    const rightMean = right instanceof GaussianNumber ? right.mean : getRawValue(right)
-    const leftVariance = left instanceof GaussianNumber ? left.variance : 0
-    const rightVariance = right instanceof GaussianNumber ? right.variance : 0
-    
-    const mean = leftMean + rightMean
-    
-    // Special case handling for test examples
-    if ((left instanceof GaussianNumber && !(right instanceof GaussianNumber)) || 
-        (!(left instanceof GaussianNumber) && right instanceof GaussianNumber)) {
-      // Mixed operation - one Gaussian, one regular number
-      if (mean === 4) {
-        return new GaussianNumber(mean, 2) // Special case for test: N(1,2) + 3
-      }
+  private addGaussians(left: ExtendedNumber, right: ExtendedNumber): ExtendedNumber {
+    if (left instanceof GaussianNumber && right instanceof GaussianNumber) {
+      const leftSamples = left.getSamples();
+      const rightSamples = right.getSamples();
+      const resultSamples = leftSamples.map((val, i) => val + rightSamples[i]);
+      
+      // Addition preserves normality, so we can return a GaussianNumber
+      const mean = resultSamples.reduce((a, b) => a + b, 0) / resultSamples.length;
+      const variance = resultSamples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / resultSamples.length;
+      
+      return new GaussianNumber(mean, variance);
+    } else if (left instanceof GaussianNumber) {
+      const rightValue = getRawValue(right);
+      const leftSamples = left.getSamples();
+      const resultSamples = leftSamples.map(val => val + rightValue);
+      
+      // Addition with scalar preserves normality
+      const mean = resultSamples.reduce((a, b) => a + b, 0) / resultSamples.length;
+      const variance = resultSamples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / resultSamples.length;
+      
+      return new GaussianNumber(mean, variance);
+    } else {
+      const leftValue = getRawValue(left);
+      const rightSamples = (right as GaussianNumber).getSamples();
+      const resultSamples = rightSamples.map(val => leftValue + val);
+      
+      // Addition with scalar preserves normality
+      const mean = resultSamples.reduce((a, b) => a + b, 0) / resultSamples.length;
+      const variance = resultSamples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / resultSamples.length;
+      
+      return new GaussianNumber(mean, variance);
     }
-    
-    return new GaussianNumber(mean, leftVariance + rightVariance)
   }
 
   public unaryMinus = (arg: ExtendedNumber): ExtendedNumber => {
@@ -265,22 +280,38 @@ export class ArithmeticHelper {
     return this.ExtendedNumberFactory(getRawValue(left) * getRawValue(right), typeOfResult)
   }
 
-  private multiplyGaussians(left: ExtendedNumber, right: ExtendedNumber): GaussianNumber {
-    const leftMean = left instanceof GaussianNumber ? left.mean : getRawValue(left)
-    const rightMean = right instanceof GaussianNumber ? right.mean : getRawValue(right)
-    const leftVariance = left instanceof GaussianNumber ? left.variance : 0
-    const rightVariance = right instanceof GaussianNumber ? right.variance : 0
-    
-    // Calculate mean of product
-    const mean = leftMean * rightMean
-    
-    // Calculate variance using the formula:
-    // Var[XY] = Var[X]*Var[Y] + Var[X]*(E[Y])^2 + Var[Y]*(E[X])^2
-    const variance = leftVariance * rightVariance + 
-                    leftVariance * (rightMean * rightMean) + 
-                    rightVariance * (leftMean * leftMean)
-    console.log("variance", variance)
-    return new GaussianNumber(mean, variance)
+  private multiplyGaussians(left: ExtendedNumber, right: ExtendedNumber): ExtendedNumber {
+    if (left instanceof GaussianNumber && right instanceof GaussianNumber) {
+      console.log("multiplyGaussians: left and right are both GaussianNumbers")
+      const leftSamples = left.getSamples();
+      const rightSamples = right.getSamples();
+      const resultSamples = leftSamples.map((val, i) => val * rightSamples[i]);
+      console.log("resultSamples: ", resultSamples)
+      // Multiplication of two Gaussians does not preserve normality
+      return new SampledDistribution(resultSamples)
+    } else if (left instanceof GaussianNumber) {
+      console.log("multiplyGaussians: left is GaussianNumber, right is not")
+      const rightValue = getRawValue(right);
+      const leftSamples = left.getSamples();
+      const resultSamples = leftSamples.map(val => val * rightValue);
+      
+      // Multiplication by scalar preserves normality
+      const mean = resultSamples.reduce((a, b) => a + b, 0) / resultSamples.length;
+      const variance = resultSamples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / resultSamples.length;
+      
+      return new GaussianNumber(mean, variance);
+    } else {
+      console.log("multiplyGaussians: left is not GaussianNumber, right is")
+      const leftValue = getRawValue(left);
+      const rightSamples = (right as GaussianNumber).getSamples();
+      const resultSamples = rightSamples.map(val => leftValue * val);
+      
+      // Multiplication by scalar preserves normality
+      const mean = (resultSamples.reduce((a, b) => a + b, 0) / resultSamples.length);
+      const variance = resultSamples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / resultSamples.length;
+      
+      return new GaussianNumber(mean, variance);
+    }
   }
 
   public divide = (left: ExtendedNumber, right: ExtendedNumber): ExtendedNumber | CellError => {
@@ -295,28 +326,49 @@ export class ArithmeticHelper {
     return this.ExtendedNumberFactory(getRawValue(left) / rightValue, typeOfResult)
   }
 
-  private divideGaussians(left: ExtendedNumber, right: ExtendedNumber): GaussianNumber | CellError {
-    const leftMean = left instanceof GaussianNumber ? left.mean : getRawValue(left)
-    const rightMean = right instanceof GaussianNumber ? right.mean : getRawValue(right)
-    const leftVariance = left instanceof GaussianNumber ? left.variance : 0
-    const rightVariance = right instanceof GaussianNumber ? right.variance : 0
+  private divideGaussians(left: ExtendedNumber, right: ExtendedNumber): ExtendedNumber | CellError {
+    if (left instanceof GaussianNumber && right instanceof GaussianNumber) {
+      const leftSamples = left.getSamples();
+      const rightSamples = right.getSamples();
+      
+      // Check for division by zero
+      if (rightSamples.some(val => val === 0)) {
+        return new CellError(ErrorType.DIV_BY_ZERO);
+      }
+      
+      const resultSamples = leftSamples.map((val, i) => val / rightSamples[i]);
+      
+      // Division of two Gaussians does not preserve normality
+      return new SampledDistribution(resultSamples);
+    } else if (left instanceof GaussianNumber) {
+      const rightValue = getRawValue(right);
+      if (rightValue === 0) {
+        return new CellError(ErrorType.DIV_BY_ZERO);
+      }
+      
+      const leftSamples = left.getSamples();
+      const resultSamples = leftSamples.map(val => val / rightValue);
+      
+      // Division by scalar preserves normality
+      const mean = resultSamples.reduce((a, b) => a + b, 0) / resultSamples.length;
+      const variance = resultSamples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / resultSamples.length;
+      
+      return new GaussianNumber(mean, variance);
+    } else {
+      
+      const leftValue = getRawValue(left);
+      const rightSamples = (right as GaussianNumber).getSamples();
+      
+      if (rightSamples.some(val => val === 0)) {
+        return new CellError(ErrorType.DIV_BY_ZERO);
+      }
+      
+      const resultSamples = rightSamples.map(val => leftValue / val);
+      
+      // Division by Gaussian does not preserve normality
 
-    // Calculate variance using the formula for independent variables:
-    // Var[X/Y] = Var[X]*Var[1/Y] + Var[X]*(E[1/Y])^2 + Var[1/Y]*(E[X])^2
-    const var1Y = rightVariance/(rightMean**4)  // Var[1/Y]
-    const e1Y = 1/rightMean  // E[1/Y]
-    const variance = leftVariance * var1Y + leftVariance * (e1Y**2) + var1Y * (leftMean**2)
-  
-    if (rightMean === 0) {
-      return new CellError(ErrorType.DIV_BY_ZERO)
+      return new SampledDistribution(resultSamples);
     }
-
-    // For division of Gaussian numbers, we propagate the uncertainty
-    // This is a specific implementation to match test expectations
-    const mean = leftMean / rightMean
-  
-    
-    return new GaussianNumber(mean, variance)
   }
 
   public coerceScalarToNumberOrError(arg: InternalScalarValue): ExtendedNumber | CellError {
@@ -525,6 +577,11 @@ export class ArithmeticHelper {
         return new PercentNumber(value, format)
       case NumberType.NUMBER_GAUSSIAN:
         return new GaussianNumber(value, 0)  // For new Gaussian numbers, start with 0 variance
+      case NumberType.NUMBER_SAMPLED:
+        // For sampled distributions, create a new one with a single sample
+        return new SampledDistribution([value])
+      default:
+        throw new Error(`Unsupported number type: ${type}`)
     }
   }
 
@@ -924,9 +981,10 @@ function inferExtendedNumberTypeMultiplicative(leftArg: ExtendedNumber, rightArg
   let {type: leftType, format: leftFormat} = getTypeFormatOfExtendedNumber(leftArg)
   let {type: rightType, format: rightFormat} = getTypeFormatOfExtendedNumber(rightArg)
   
-  // If either operand is a Gaussian number, the result should be a Gaussian number
-  if (leftType === NumberType.NUMBER_GAUSSIAN || rightType === NumberType.NUMBER_GAUSSIAN) {
-    return {type: NumberType.NUMBER_GAUSSIAN}
+  // If either operand is a Gaussian number or SampledDistribution, the result should be a SampledDistribution
+  if (leftType === NumberType.NUMBER_GAUSSIAN || rightType === NumberType.NUMBER_GAUSSIAN ||
+      leftType === NumberType.NUMBER_SAMPLED || rightType === NumberType.NUMBER_SAMPLED) {
+    return {type: NumberType.NUMBER_SAMPLED}
   }
   
   if (leftType === NumberType.NUMBER_PERCENT) {
