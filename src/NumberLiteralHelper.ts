@@ -12,7 +12,7 @@ export class NumberLiteralHelper {
   private readonly numberPattern: RegExp
   private readonly allThousandSeparatorsRegex: RegExp
   private readonly gaussianPattern: RegExp = /^N\s*\(\s*\u03BC\s*=\s*([+-]?\d*\.?\d+)\s*,\s*\u03C3\u00B2\s*=\s*([+-]?\d*\.?\d+)\s*\)$/
-  private readonly sampledPattern: RegExp = /^S\[(\d+)\]\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3\u00B2=([+-]?\d*\.?\d+)\)$/
+  private readonly sampledPattern: RegExp = /^S\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3\u00B2=([+-]?\d*\.?\d+)\)$/
 
   constructor(
     private readonly config: Config
@@ -36,12 +36,11 @@ export class NumberLiteralHelper {
 
     const sampledMatch = this.sampledPattern.exec(input)
     if (sampledMatch) {
-      const sampleCount = Number(sampledMatch[1])
-      const mean = Number(sampledMatch[2])
-      const variance = Number(sampledMatch[3])
-      if (!isNaN(sampleCount) && !isNaN(mean) && !isNaN(variance)) {
+      const mean = Number(sampledMatch[1])
+      const variance = Number(sampledMatch[2])
+      if (!isNaN(mean) && !isNaN(variance)) {
         // Generate samples based on mean and variance
-        const samples = Array.from({length: sampleCount}, () => {
+        const samples = Array.from({length: 1000}, () => {
           const u1 = Math.random();
           const u2 = Math.random();
           const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
