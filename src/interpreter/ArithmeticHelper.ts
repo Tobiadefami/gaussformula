@@ -20,7 +20,8 @@ import {
   RawInterpreterValue,
   RawNoErrorScalarValue,
   RawScalarValue,
-  SampledDistribution,
+  ProductDistribution,
+  RatioDistribution,
   TimeNumber,
   cloneNumber,
   getRawValue,
@@ -288,7 +289,7 @@ export class ArithmeticHelper {
       const resultSamples = leftSamples.map((val, i) => val * rightSamples[i]);
       console.log("resultSamples: ", resultSamples)
       // Multiplication of two Gaussians does not preserve normality
-      return new SampledDistribution(resultSamples)
+      return new ProductDistribution(resultSamples)
     } else if (left instanceof GaussianNumber) {
       console.log("multiplyGaussians: left is GaussianNumber, right is not")
       const rightValue = getRawValue(right);
@@ -328,18 +329,37 @@ export class ArithmeticHelper {
 
   private divideGaussians(left: ExtendedNumber, right: ExtendedNumber): ExtendedNumber | CellError {
     if (left instanceof GaussianNumber && right instanceof GaussianNumber) {
-      const leftSamples = left.getSamples();
-      const rightSamples = right.getSamples();
+      const meanX = left.mean;
+      const varX = left.variance;
+      const meanY = right.mean;
+      const varY = right.variance;
       
       // Check for division by zero
-      if (rightSamples.some(val => val === 0)) {
+      if (meanY === 0) {
         return new CellError(ErrorType.DIV_BY_ZERO);
       }
       
-      const resultSamples = leftSamples.map((val, i) => val / rightSamples[i]);
+      // Calculate coefficient of variation for denominator
+      const cvY = Math.sqrt(varY) / Math.abs(meanY);
       
-      // Division of two Gaussians does not preserve normality
-      return new SampledDistribution(resultSamples);
+      if (cvY <= 0.2) {
+        // Delta-method approximation for ratio of two random variables
+        const muZ = meanX / meanY;
+        const varZ = varX / (meanY * meanY) + 
+                    (meanX * meanX * varY) / (meanY * meanY * meanY * meanY);
+        
+        // Ensure we create a proper RatioDistribution with all required parameters
+        return new RatioDistribution(
+          muZ, 
+          varZ, 
+          meanX,  // sourceMeanX
+          varX,   // sourceVarX
+          meanY,  // sourceMeanY
+          varY    // sourceVarY
+        );
+      } else {
+        return new CellError(ErrorType.NUM, "Unstable ratio: denominator has high relative uncertainty");
+      }
     } else if (left instanceof GaussianNumber) {
       const rightValue = getRawValue(right);
       if (rightValue === 0) {
@@ -355,7 +375,6 @@ export class ArithmeticHelper {
       
       return new GaussianNumber(mean, variance);
     } else {
-      
       const leftValue = getRawValue(left);
       const rightSamples = (right as GaussianNumber).getSamples();
       
@@ -364,10 +383,7 @@ export class ArithmeticHelper {
       }
       
       const resultSamples = rightSamples.map(val => leftValue / val);
-      
-      // Division by Gaussian does not preserve normality
-
-      return new SampledDistribution(resultSamples);
+      return new ProductDistribution(resultSamples);
     }
   }
 
@@ -577,9 +593,9 @@ export class ArithmeticHelper {
         return new PercentNumber(value, format)
       case NumberType.NUMBER_GAUSSIAN:
         return new GaussianNumber(value, 0)  // For new Gaussian numbers, start with 0 variance
-      case NumberType.NUMBER_SAMPLED:
+      case NumberType.NUMBER_PRODUCT:
         // For sampled distributions, create a new one with a single sample
-        return new SampledDistribution([value])
+        return new ProductDistribution([value])
       default:
         throw new Error(`Unsupported number type: ${type}`)
     }
@@ -981,10 +997,10 @@ function inferExtendedNumberTypeMultiplicative(leftArg: ExtendedNumber, rightArg
   let {type: leftType, format: leftFormat} = getTypeFormatOfExtendedNumber(leftArg)
   let {type: rightType, format: rightFormat} = getTypeFormatOfExtendedNumber(rightArg)
   
-  // If either operand is a Gaussian number or SampledDistribution, the result should be a SampledDistribution
+  // If either operand is a Gaussian number or ProductDistribution, the result should be a ProductDistribution
   if (leftType === NumberType.NUMBER_GAUSSIAN || rightType === NumberType.NUMBER_GAUSSIAN ||
-      leftType === NumberType.NUMBER_SAMPLED || rightType === NumberType.NUMBER_SAMPLED) {
-    return {type: NumberType.NUMBER_SAMPLED}
+      leftType === NumberType.NUMBER_PRODUCT || rightType === NumberType.NUMBER_PRODUCT) {
+    return {type: NumberType.NUMBER_PRODUCT}
   }
   
   if (leftType === NumberType.NUMBER_PERCENT) {
