@@ -11,8 +11,7 @@ import {
   ExtendedNumber,
   GaussianNumber,
   PercentNumber,
-  ProductDistribution,
-  RatioDistribution,
+  SampledDistribution,
   TimeNumber,
   cloneNumber,
   getRawValue
@@ -152,32 +151,21 @@ export class CellContentParser {
         }
       }
 
-      // Try to parse as ProductDistribution
-      const productMatch = /^P\s*\(\s*μ\s*=\s*([+-]?\d*\.?\d+)\s*,\s*σ²\s*=\s*([+-]?\d*\.?\d+)\s*\)$/.exec(content)
-      if (productMatch) {
-        const mean = Number(productMatch[1])
-        const variance = Number(productMatch[2])
-        if (!isNaN(mean) && !isNaN(variance)) {
-          // Generate samples based on mean and variance
-          const samples = Array.from({length: 1000}, () => {
+      // Try to parse as SampledDistribution
+      const sampledMatch = /^S\[(\d+)\]\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3=([+-]?\d*\.?\d+)\)$/.exec(content)
+      if (sampledMatch) {
+        const sampleCount = Number(sampledMatch[1])
+        const mean = Number(sampledMatch[2])
+        const std = Number(sampledMatch[3])
+        if (!isNaN(sampleCount) && !isNaN(mean) && !isNaN(std)) {
+          // Generate samples based on mean and std
+          const samples = Array.from({length: sampleCount}, () => {
             const u1 = Math.random();
             const u2 = Math.random();
             const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-            return mean + Math.sqrt(variance) * z0;
+            return mean + std * z0;
           });
-          return new CellContent.Number(new ProductDistribution(samples))
-        }
-      }
-
-      // Try to parse as RatioDistribution
-      const ratioMatch = /^R\s*\(\s*μ\s*=\s*([+-]?\d*\.?\d+)\s*,\s*σ²\s*=\s*([+-]?\d*\.?\d+)\s*\)$/.exec(content)
-      if (ratioMatch) {
-        const mean = Number(ratioMatch[1])
-        const variance = Number(ratioMatch[2])
-        if (!isNaN(mean) && !isNaN(variance)) {
-          // Create a RatioDistribution with placeholder source parameters
-          // These will be updated when the actual division operation occurs
-          return new CellContent.Number(new RatioDistribution(mean, variance, 0, 0, 0, 0))
+          return new CellContent.Number(new SampledDistribution(samples))
         }
       }
 

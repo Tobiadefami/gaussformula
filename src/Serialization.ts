@@ -3,20 +3,14 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {
-  ArrayVertex,
-  DependencyGraph,
-  FormulaCellVertex,
-  ParsingErrorVertex
-} from './DependencyGraph'
+import {ArrayVertex, DependencyGraph, FormulaCellVertex, ParsingErrorVertex} from './DependencyGraph'
 import {CellError, ErrorType} from './Cell'
 import {
   EmptyValue,
   GaussianNumber,
   InterpreterValue,
   RawInterpreterValue,
-  ProductDistribution,
-  RatioDistribution,
+  SampledDistribution,
   getRawValue as getInterpreterRawValue
 } from './interpreter/InterpreterValue'
 import {NamedExpressionOptions, NamedExpressions} from './NamedExpressions'
@@ -95,12 +89,10 @@ export class Serialization {
       return null
     } else if (value instanceof GaussianNumber) {
       return `N(μ=${value.mean.toFixed(2)}, σ²=${value.variance.toFixed(2)})`
-    } else if (value instanceof ProductDistribution) {
+    } else if (value instanceof SampledDistribution) {
       const mean = value.getMean();
       const variance = value.getVariance();
-      return `P(μ=${mean.toFixed(2)}, σ²=${variance.toFixed(2)})`
-    } else if (value instanceof RatioDistribution) {
-      return `R(μ=${value.mean.toFixed(2)}, σ²=${value.variance.toFixed(2)})`
+      return `S(μ=${mean.toFixed(2)}, σ²=${variance.toFixed(2)})`
     } else if (value instanceof CellError) {
       return this.config.translationPackage.getErrorTranslation(value.type)
     } else {

@@ -11,8 +11,7 @@ import {
   GaussianNumber,
   InterpreterValue,
   RawInterpreterValue,
-  ProductDistribution,
-  RatioDistribution,
+  SampledDistribution,
   getRawValue,
   isExtendedNumber
 } from './interpreter/InterpreterValue'
@@ -106,9 +105,7 @@ export class Exporter implements ChangeExporter<ExportedChange> {
       return null
     } else if (value instanceof GaussianNumber) {
       return value
-    } else if (value instanceof ProductDistribution) {
-      return value
-    } else if (value instanceof RatioDistribution) {
+    } else if (value instanceof SampledDistribution) {
       return value
     } else if (value instanceof CellError) {
       return this.detailedError(value)

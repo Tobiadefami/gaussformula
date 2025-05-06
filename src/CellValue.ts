@@ -4,11 +4,11 @@
  */
 
 import {CellError, ErrorType} from './Cell'
-import {GaussianNumber, ProductDistribution, RatioDistribution} from './interpreter/InterpreterValue'
+import {GaussianNumber, SampledDistribution} from './interpreter/InterpreterValue'
 
 import {SimpleRangeValue} from './SimpleRangeValue'
 
-export type NoErrorCellValue = number | string | boolean | null | GaussianNumber | ProductDistribution | RatioDistribution | SimpleRangeValue
+export type NoErrorCellValue = number | string | boolean | null | GaussianNumber | SampledDistribution | SimpleRangeValue
 export type CellValue = NoErrorCellValue | DetailedCellError
 
 export class DetailedCellError {

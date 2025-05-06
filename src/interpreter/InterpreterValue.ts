@@ -95,8 +95,7 @@ export enum NumberType {
   NUMBER_CURRENCY = 'NUMBER_CURRENCY',
   NUMBER_PERCENT = 'NUMBER_PERCENT',
   NUMBER_GAUSSIAN = 'NUMBER_GAUSSIAN',
-  NUMBER_PRODUCT = 'NUMBER_PRODUCT',
-  NUMBER_RATIO = 'NUMBER_RATIO'
+  NUMBER_SAMPLED = 'NUMBER_SAMPLED'
 }
 
 export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
@@ -137,8 +136,9 @@ export function getTypeFormatOfExtendedNumber(num: ExtendedNumber): NumberTypeWi
   }
 }
 
-export class ProductDistribution extends RichNumber {
+export class SampledDistribution extends RichNumber {
   private readonly samples: number[];
+
 
   constructor(samples: number[]) {
     super(0);
@@ -161,12 +161,12 @@ export class ProductDistribution extends RichNumber {
   }
 
   public getDetailedType(): NumberType {
-    return NumberType.NUMBER_PRODUCT;
+    return NumberType.NUMBER_SAMPLED;
   }
 
   public fromNumber(val: number): this {
     const newSamples = this.samples.map(s => s - this.getMean() + val);
-    return new ProductDistribution(newSamples) as this;
+    return new SampledDistribution(newSamples) as this;
   }
 }
 
@@ -214,35 +214,6 @@ export class GaussianNumber extends RichNumber {
     }
     
     return false;
-  }
-}
-
-export class RatioDistribution extends RichNumber {
-  constructor(
-    public readonly mean: number,
-    public readonly variance: number,
-    public readonly sourceMeanX: number,
-    public readonly sourceVarX: number,
-    public readonly sourceMeanY: number,
-    public readonly sourceVarY: number
-  ) {
-    super(mean);
-  }
-
-  public getDetailedType(): NumberType {
-    return NumberType.NUMBER_RATIO;
-  }
-
-  public fromNumber(val: number): this {
-    const meanDiff = val - this.mean;
-    return new RatioDistribution(
-      val,
-      this.variance,
-      this.sourceMeanX + meanDiff * this.sourceMeanY,
-      this.sourceVarX,
-      this.sourceMeanY,
-      this.sourceVarY
-    ) as this;
   }
 }
 
