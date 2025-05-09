@@ -3,7 +3,7 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {CellError, ErrorType} from './Cell'
+import { CellError, ErrorType } from "./Cell";
 import {
   CurrencyNumber,
   DateNumber,
@@ -14,62 +14,70 @@ import {
   SampledDistribution,
   TimeNumber,
   cloneNumber,
-  getRawValue
-} from './interpreter/InterpreterValue'
-import {DateTimeHelper, timeToNumber} from './DateTimeHelper'
-import {fixNegativeZero, isNumberOverflow} from './interpreter/ArithmeticHelper'
+  getRawValue,
+} from "./interpreter/InterpreterValue";
+import { DateTimeHelper, timeToNumber } from "./DateTimeHelper";
+import {
+  fixNegativeZero,
+  isNumberOverflow,
+} from "./interpreter/ArithmeticHelper";
 
-import {Config} from './Config'
-import {ErrorMessage} from './error-message'
-import {Maybe} from './Maybe'
-import {NumberLiteralHelper} from './NumberLiteralHelper'
-import {UnableToParseError} from './errors'
+import { Config } from "./Config";
+import { ErrorMessage } from "./error-message";
+import { Maybe } from "./Maybe";
+import { NumberLiteralHelper } from "./NumberLiteralHelper";
+import { UnableToParseError } from "./errors";
 
-export type RawCellContent = Date | string | number | boolean | null | undefined
+export type RawCellContent =
+  | Date
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
 
 export namespace CellContent {
   export class Number {
     constructor(public readonly value: ExtendedNumber) {
-      this.value = cloneNumber(this.value, fixNegativeZero(getRawValue(this.value)))
+      this.value = cloneNumber(
+        this.value,
+        fixNegativeZero(getRawValue(this.value))
+      );
     }
   }
 
   export class String {
-    constructor(public readonly value: string) {
-    }
+    constructor(public readonly value: string) {}
   }
 
   export class Boolean {
-    constructor(public readonly value: boolean) {
-    }
+    constructor(public readonly value: boolean) {}
   }
 
   export class Empty {
-
-    private static instance: Empty
+    private static instance: Empty;
 
     public static getSingletonInstance() {
       if (!Empty.instance) {
-        Empty.instance = new Empty()
+        Empty.instance = new Empty();
       }
-      return Empty.instance
+      return Empty.instance;
     }
   }
 
   export class Formula {
-    constructor(public readonly formula: string) {
-    }
+    constructor(public readonly formula: string) {}
   }
 
   export class Error {
-    public readonly value: CellError
+    public readonly value: CellError;
 
     constructor(errorType: ErrorType, message?: string) {
-      this.value = new CellError(errorType, message)
+      this.value = new CellError(errorType, message);
     }
   }
 
-  export type Type = Number | String | Boolean | Empty | Formula | Error
+  export type Type = Number | String | Boolean | Empty | Formula | Error;
 }
 
 /**
@@ -78,143 +86,158 @@ export namespace CellContent {
  * @param text - formula
  */
 export function isFormula(text: string): boolean {
-  return text.startsWith('=')
+  return text.startsWith("=");
 }
 
 export function isBoolean(text: string): boolean {
-  const tl = text.toLowerCase()
-  return tl === 'true' || tl === 'false'
+  const tl = text.toLowerCase();
+  return tl === "true" || tl === "false";
 }
 
-export function isError(text: string, errorMapping: Record<string, ErrorType>): boolean {
-  const upperCased = text.toUpperCase()
-  const errorRegex = /#[A-Za-z0-9\/]+[?!]?/
-  return errorRegex.test(upperCased) && Object.prototype.hasOwnProperty.call(errorMapping, upperCased)
+export function isError(
+  text: string,
+  errorMapping: Record<string, ErrorType>
+): boolean {
+  const upperCased = text.toUpperCase();
+  const errorRegex = /#[A-Za-z0-9\/]+[?!]?/;
+  return (
+    errorRegex.test(upperCased) &&
+    Object.prototype.hasOwnProperty.call(errorMapping, upperCased)
+  );
 }
 
 export class CellContentParser {
   constructor(
     private readonly config: Config,
     private readonly dateHelper: DateTimeHelper,
-    private readonly numberLiteralsHelper: NumberLiteralHelper) {
-  }
+    private readonly numberLiteralsHelper: NumberLiteralHelper
+  ) {}
 
   public parse(content: RawCellContent): CellContent.Type {
     if (content === undefined || content === null) {
-      return CellContent.Empty.getSingletonInstance()
-    } else if (typeof content === 'number') {
+      return CellContent.Empty.getSingletonInstance();
+    } else if (typeof content === "number") {
       if (isNumberOverflow(content)) {
-        return new CellContent.Error(ErrorType.NUM, ErrorMessage.ValueLarge)
+        return new CellContent.Error(ErrorType.NUM, ErrorMessage.ValueLarge);
       } else {
-        return new CellContent.Number(content)
+        return new CellContent.Number(content);
       }
-    } else if (typeof content === 'boolean') {
-      return new CellContent.Boolean(content)
+    } else if (typeof content === "boolean") {
+      return new CellContent.Boolean(content);
     } else if (content instanceof Date) {
       const dateVal = this.dateHelper.dateToNumber({
         day: content.getDate(),
         month: content.getMonth() + 1,
-        year: content.getFullYear()
-      })
+        year: content.getFullYear(),
+      });
       const timeVal = timeToNumber({
         hours: content.getHours(),
         minutes: content.getMinutes(),
-        seconds: content.getSeconds() + content.getMilliseconds() / 1000
-      })
-      const val = dateVal + timeVal
+        seconds: content.getSeconds() + content.getMilliseconds() / 1000,
+      });
+      const val = dateVal + timeVal;
       if (val < 0) {
-        return new CellContent.Error(ErrorType.NUM, ErrorMessage.DateBounds)
+        return new CellContent.Error(ErrorType.NUM, ErrorMessage.DateBounds);
       }
       if (val % 1 === 0) {
-        return new CellContent.Number(new DateNumber(val, 'Date()'))
+        return new CellContent.Number(new DateNumber(val, "Date()"));
       } else if (val < 1) {
-        return new CellContent.Number(new TimeNumber(val, 'Date()'))
+        return new CellContent.Number(new TimeNumber(val, "Date()"));
       } else {
-        return new CellContent.Number(new DateTimeNumber(val, 'Date()'))
+        return new CellContent.Number(new DateTimeNumber(val, "Date()"));
       }
-    } else if (typeof content === 'string') {
+    } else if (typeof content === "string") {
       if (isBoolean(content)) {
-        return new CellContent.Boolean(content.toLowerCase() === 'true')
+        return new CellContent.Boolean(content.toLowerCase() === "true");
       } else if (isFormula(content)) {
-        return new CellContent.Formula(content)
+        return new CellContent.Formula(content);
       } else if (isError(content, this.config.errorMapping)) {
-        return new CellContent.Error(this.config.errorMapping[content.toUpperCase()])
+        return new CellContent.Error(
+          this.config.errorMapping[content.toUpperCase()]
+        );
       }
 
       // Try to parse as Gaussian number first
-      const gaussianMatch = /^N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/.exec(content)
+      const gaussianMatch =
+        /^N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/.exec(content);
       if (gaussianMatch) {
-        const mean = Number(gaussianMatch[1])
-        const variance = Number(gaussianMatch[2])
+        const mean = Number(gaussianMatch[1]);
+        const variance = Number(gaussianMatch[2]);
         if (!isNaN(mean) && !isNaN(variance)) {
-          return new CellContent.Number(new GaussianNumber(mean, variance))
+          return new CellContent.Number(
+            new GaussianNumber(mean, variance, this.config)
+          );
         }
       }
 
       // Try to parse as SampledDistribution
-      const sampledMatch = /^S\[(\d+)\]\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3=([+-]?\d*\.?\d+)\)$/.exec(content)
+      const sampledMatch =
+        /^S\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3\u00B2=([+-]?\d*\.?\d+)\)$/.exec(
+          content
+        );
       if (sampledMatch) {
-        const sampleCount = Number(sampledMatch[1])
-        const mean = Number(sampledMatch[2])
-        const std = Number(sampledMatch[3])
-        if (!isNaN(sampleCount) && !isNaN(mean) && !isNaN(std)) {
-          // Generate samples based on mean and std
-          const samples = Array.from({length: sampleCount}, () => {
-            const u1 = Math.random();
-            const u2 = Math.random();
-            const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-            return mean + std * z0;
-          });
-          return new CellContent.Number(new SampledDistribution(samples))
+        const mean = Number(sampledMatch[1]);
+        const variance = Number(sampledMatch[2]);
+        if (!isNaN(mean) && !isNaN(variance)) {
+          const sampledDistribution = SampledDistribution.fromMeanAndVariance(
+            mean,
+            variance,
+            this.config
+          );
+          return new CellContent.Number(sampledDistribution);
         }
       }
 
-      let trimmedContent = content.trim()
-      let mode = 0
-      let currency
-      if (trimmedContent.endsWith('%')) {
-        mode = 1
-        trimmedContent = trimmedContent.slice(0, trimmedContent.length - 1)
+      let trimmedContent = content.trim();
+      let mode = 0;
+      let currency;
+      if (trimmedContent.endsWith("%")) {
+        mode = 1;
+        trimmedContent = trimmedContent.slice(0, trimmedContent.length - 1);
       } else {
-        const res = this.currencyMatcher(trimmedContent)
+        const res = this.currencyMatcher(trimmedContent);
         if (res !== undefined) {
           mode = 2;
-          [currency, trimmedContent] = res
+          [currency, trimmedContent] = res;
         }
       }
 
-      const val: number | any = this.numberLiteralsHelper.numericStringToMaybeNumber(trimmedContent)
+      const val: number | any =
+        this.numberLiteralsHelper.numericStringToMaybeNumber(trimmedContent);
       if (val !== undefined) {
-        let parseAsNum
+        let parseAsNum;
         if (mode === 1) {
-          parseAsNum = new PercentNumber(val / 100)
+          parseAsNum = new PercentNumber(val / 100);
         } else if (mode === 2) {
-          parseAsNum = new CurrencyNumber(val, currency as string)
+          parseAsNum = new CurrencyNumber(val, currency as string);
         } else {
-          parseAsNum = val
+          parseAsNum = val;
         }
-        return new CellContent.Number(parseAsNum)
+        return new CellContent.Number(parseAsNum);
       }
-      const parsedDateNumber = this.dateHelper.dateStringToDateNumber(trimmedContent)
+      const parsedDateNumber =
+        this.dateHelper.dateStringToDateNumber(trimmedContent);
       if (parsedDateNumber !== undefined) {
-        return new CellContent.Number(parsedDateNumber)
+        return new CellContent.Number(parsedDateNumber);
       } else {
-        return new CellContent.String(content.startsWith('\'') ? content.slice(1) : content)
+        return new CellContent.String(
+          content.startsWith("'") ? content.slice(1) : content
+        );
       }
     } else {
-      throw new UnableToParseError(content)
+      throw new UnableToParseError(content);
     }
   }
 
   private currencyMatcher(token: string): Maybe<[string, string]> {
     for (const currency of this.config.currencySymbol) {
       if (token.startsWith(currency)) {
-        return [currency, token.slice(currency.length)]
+        return [currency, token.slice(currency.length)];
       }
       if (token.endsWith(currency)) {
-        return [currency, token.slice(0, token.length - currency.length)]
+        return [currency, token.slice(0, token.length - currency.length)];
       }
     }
-    return undefined
+    return undefined;
   }
 }
