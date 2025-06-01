@@ -63,6 +63,85 @@ export class ArithmeticHelper {
     this.actualEps = config.smartRounding ? config.precisionEpsilon : 0;
   }
 
+  /**
+   * ========================================================================
+   * Near-Zero Value Handling for Gaussian and Sampled Distribution Arithmetic
+   * ========================================================================
+   *
+   * When working with sampled distributions (Gaussian and SampledDistribution),
+   * some samples may be very close to zero but not exactly zero. This can cause
+   * numerical instability issues:
+   *
+   * 1. Division: Dividing by values very close to zero results in extremely
+   *    large numbers that can cause overflow or precision loss
+   * 2. Multiplication: Multiplying by near-zero values should snap to exact zero
+   *    to maintain numerical stability
+   *
+   * Our approach:
+   * - Use different epsilon thresholds for different operations
+   * - For division: Use a more conservative threshold (1000x normal epsilon)
+   *   to prevent numerical instability
+   * - For multiplication: Use normal epsilon and snap to exact zero
+   * - Check for overflow and non-finite results in division operations
+   */
+
+  /**
+   * Check if a value is close enough to zero to be considered effectively zero
+   * for numerical stability in operations like division and multiplication.
+   *
+   * For division operations, we use a more conservative threshold to prevent
+   * numerical instability from very small denominators.
+   */
+  private isEffectivelyZero(
+    value: number,
+    forDivision: boolean = false
+  ): boolean {
+    if (forDivision) {
+      // Use a larger threshold for division to prevent numerical instability
+      // This is typically 1000x the normal epsilon to catch values that would
+      // cause overflow or extreme numerical instability
+      const divisionThreshold = Math.max(this.actualEps * 1000, 1e-12);
+      return Math.abs(value) < divisionThreshold;
+    } else {
+      // For multiplication and other operations, use the normal epsilon
+      return Math.abs(value) < this.actualEps;
+    }
+  }
+
+  /**
+   * Handle near-zero values in division operations to prevent numerical instability
+   * Returns either the result or a marker for values that should be treated as zero
+   */
+  private safeDivision(numerator: number, denominator: number): number | null {
+    if (denominator === 0 || this.isEffectivelyZero(denominator, true)) {
+      return null; // Signal division by zero
+    }
+
+    const result = numerator / denominator;
+
+    // Check for numerical overflow/instability
+    if (
+      !Number.isFinite(result) ||
+      Math.abs(result) > Number.MAX_SAFE_INTEGER
+    ) {
+      return null; // Signal numerical instability
+    }
+
+    return result;
+  }
+
+  /**
+   * Handle near-zero values in multiplication to avoid precision issues
+   */
+  private safeMultiplication(left: number, right: number): number {
+    // If either value is effectively zero, return exact zero
+    if (this.isEffectivelyZero(left) || this.isEffectivelyZero(right)) {
+      return 0;
+    }
+
+    return left * right;
+  }
+
   public eqMatcherFunction(
     pattern: string
   ): (arg: RawInterpreterValue) => boolean {
@@ -406,7 +485,7 @@ export class ArithmeticHelper {
     }
     const typeOfResult = inferExtendedNumberTypeMultiplicative(left, right);
     return this.ExtendedNumberFactory(
-      getRawValue(left) * getRawValue(right),
+      this.safeMultiplication(getRawValue(left), getRawValue(right)),
       typeOfResult
     );
   };
@@ -421,7 +500,9 @@ export class ArithmeticHelper {
     ) {
       const leftSamples = left.getSamples();
       const rightSamples = right.getSamples();
-      const resultSamples = leftSamples.map((val, i) => val * rightSamples[i]);
+      const resultSamples = leftSamples.map((val, i) =>
+        this.safeMultiplication(val, rightSamples[i])
+      );
 
       return new SampledDistribution(resultSamples);
     } else if (
@@ -430,7 +511,9 @@ export class ArithmeticHelper {
     ) {
       const rightValue = getRawValue(right);
       const leftSamples = left.getSamples();
-      const resultSamples = leftSamples.map((val) => val * rightValue);
+      const resultSamples = leftSamples.map((val) =>
+        this.safeMultiplication(val, rightValue)
+      );
       if (left instanceof GaussianNumber) {
         const { mean, variance } = this.calculateMeanAndVariance(resultSamples);
         return new GaussianNumber(mean, variance);
@@ -440,7 +523,9 @@ export class ArithmeticHelper {
     } else {
       const leftValue = getRawValue(left);
       const rightSamples = (right as GaussianNumber).getSamples();
-      const resultSamples = rightSamples.map((val) => leftValue * val);
+      const resultSamples = rightSamples.map((val) =>
+        this.safeMultiplication(leftValue, val)
+      );
       if (right instanceof GaussianNumber) {
         const { mean, variance } = this.calculateMeanAndVariance(resultSamples);
         return new GaussianNumber(mean, variance);
@@ -463,14 +548,15 @@ export class ArithmeticHelper {
       return this.divideDistributions(left, right);
     }
     const rightValue = getRawValue(right);
-    if (rightValue === 0) {
+    if (rightValue === 0 || this.isEffectivelyZero(rightValue, true)) {
       return new CellError(ErrorType.DIV_BY_ZERO);
     }
     const typeOfResult = inferExtendedNumberTypeMultiplicative(left, right);
-    return this.ExtendedNumberFactory(
-      getRawValue(left) / rightValue,
-      typeOfResult
-    );
+    const result = this.safeDivision(getRawValue(left), rightValue);
+    if (result === null) {
+      return new CellError(ErrorType.DIV_BY_ZERO);
+    }
+    return this.ExtendedNumberFactory(result, typeOfResult);
   };
 
   private divideDistributions(
@@ -484,12 +570,15 @@ export class ArithmeticHelper {
       const leftSamples = left.getSamples();
       const rightSamples = right.getSamples();
 
-      // Check for division by zero
-      if (rightSamples.some((val) => val === 0)) {
-        return new CellError(ErrorType.DIV_BY_ZERO);
+      // Check for division by zero or near-zero values
+      const resultSamples: number[] = [];
+      for (let i = 0; i < leftSamples.length; i++) {
+        const result = this.safeDivision(leftSamples[i], rightSamples[i]);
+        if (result === null) {
+          return new CellError(ErrorType.DIV_BY_ZERO);
+        }
+        resultSamples.push(result);
       }
-
-      const resultSamples = leftSamples.map((val, i) => val / rightSamples[i]);
 
       // Division of two Gaussians does not preserve normality
       return new SampledDistribution(resultSamples);
@@ -498,12 +587,15 @@ export class ArithmeticHelper {
       left instanceof SampledDistribution
     ) {
       const rightValue = getRawValue(right);
-      if (rightValue === 0) {
+      if (rightValue === 0 || this.isEffectivelyZero(rightValue, true)) {
         return new CellError(ErrorType.DIV_BY_ZERO);
       }
 
       const leftSamples = left.getSamples();
-      const resultSamples = leftSamples.map((val) => val / rightValue);
+      const resultSamples = leftSamples.map((val) => {
+        const result = this.safeDivision(val, rightValue);
+        return result === null ? 0 : result; // This shouldn't happen since we checked rightValue above
+      });
       if (left instanceof GaussianNumber) {
         const { mean, variance } = this.calculateMeanAndVariance(resultSamples);
         return new GaussianNumber(mean, variance);
@@ -514,11 +606,16 @@ export class ArithmeticHelper {
       const leftValue = getRawValue(left);
       const rightSamples = (right as GaussianNumber).getSamples();
 
-      if (rightSamples.some((val) => val === 0)) {
-        return new CellError(ErrorType.DIV_BY_ZERO);
+      // Check for division by zero or near-zero values
+      const resultSamples: number[] = [];
+      for (let i = 0; i < rightSamples.length; i++) {
+        const result = this.safeDivision(leftValue, rightSamples[i]);
+        if (result === null) {
+          return new CellError(ErrorType.DIV_BY_ZERO);
+        }
+        resultSamples.push(result);
       }
 
-      const resultSamples = rightSamples.map((val) => leftValue / val);
       if (right instanceof GaussianNumber) {
         const { mean, variance } = this.calculateMeanAndVariance(resultSamples);
         return new GaussianNumber(mean, variance);
