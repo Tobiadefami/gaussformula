@@ -104,7 +104,8 @@ export class ArithmeticHelper {
       return Math.abs(value) < divisionThreshold;
     } else {
       // For multiplication and other operations, use the normal epsilon
-      return Math.abs(value) < this.actualEps;
+      const multiplicationThreshold = Math.max(this.actualEps, 1e-12);
+      return Math.abs(value) < multiplicationThreshold;
     }
   }
 
