@@ -157,6 +157,29 @@ export function generateNormalSamples(
   });
 }
 
+export function confidenceIntervalToGaussian(
+  lower: number,
+  upper: number,
+  confidenceLevel: number
+): { mean: number; variance: number } {
+  // Get Z-score for confidence level
+  const getZScore = (confidence: number): number => {
+    const zScores: { [key: number]: number } = {
+      90: 1.645,
+      95: 1.96,
+      99: 2.576,
+    };
+    return zScores[confidence] || 1.96; // Default to 95% CI
+  };
+
+  const zScore = getZScore(confidenceLevel);
+  const mean = (lower + upper) / 2;
+  const standardDeviation = (upper - lower) / (2 * zScore);
+  const variance = standardDeviation * standardDeviation;
+
+  return { mean, variance };
+}
+
 export class SampledDistribution extends RichNumber {
   private readonly samples: number[];
 

@@ -6,6 +6,7 @@
 import {
   GaussianNumber,
   SampledDistribution,
+  confidenceIntervalToGaussian,
 } from "./interpreter/InterpreterValue";
 
 import { Config } from "./Config";
@@ -18,6 +19,8 @@ export class NumberLiteralHelper {
     /^N\s*\(\s*\u03BC\s*=\s*([+-]?\d*\.?\d+)\s*,\s*\u03C3\u00B2\s*=\s*([+-]?\d*\.?\d+)\s*\)$/;
   private readonly sampledPattern: RegExp =
     /^S\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3\u00B2=([+-]?\d*\.?\d+)\)$/;
+  private readonly confidenceIntervalPattern: RegExp =
+    /^P(\d+)\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]$/;
 
   constructor(private readonly config: Config) {
     const thousandSeparator =
@@ -57,6 +60,26 @@ export class NumberLiteralHelper {
           variance,
           this.config
         );
+      }
+    }
+
+    const confidenceIntervalMatch = this.confidenceIntervalPattern.exec(input);
+    if (confidenceIntervalMatch) {
+      const confidenceLevel = Number(confidenceIntervalMatch[1]);
+      const lower = Number(confidenceIntervalMatch[2]);
+      const upper = Number(confidenceIntervalMatch[3]);
+      if (
+        !isNaN(confidenceLevel) &&
+        !isNaN(lower) &&
+        !isNaN(upper) &&
+        lower <= upper
+      ) {
+        const { mean, variance } = confidenceIntervalToGaussian(
+          lower,
+          upper,
+          confidenceLevel
+        );
+        return new GaussianNumber(mean, variance, this.config);
       }
     }
 

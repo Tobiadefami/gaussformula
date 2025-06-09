@@ -11,104 +11,210 @@ import {
   RANGE_OPERATOR,
   ROW_REFERENCE_PATTERN,
   UNICODE_LETTER_PATTERN,
-} from './parser-consts'
-import {Lexer, TokenType, createToken} from 'chevrotain'
+} from "./parser-consts";
+import { Lexer, TokenType, createToken } from "chevrotain";
 
-import {CellReferenceMatcher} from './CellReferenceMatcher'
-import {ErrorType} from '../Cell'
-import {NamedExpressionMatcher} from './NamedExpressionMatcher'
-import {ParserConfig} from './ParserConfig'
+import { CellReferenceMatcher } from "./CellReferenceMatcher";
+import { ErrorType } from "../Cell";
+import { NamedExpressionMatcher } from "./NamedExpressionMatcher";
+import { ParserConfig } from "./ParserConfig";
 
-export const AdditionOp = createToken({ name: 'AdditionOp', pattern: Lexer.NA })
-export const PlusOp = createToken({name: 'PlusOp', pattern: /\+/, categories: AdditionOp})
-export const MinusOp = createToken({name: 'MinusOp', pattern: /-/, categories: AdditionOp})
-export const MultiplicationOp = createToken({ name: 'MultiplicationOp', pattern: Lexer.NA })
-export const TimesOp = createToken({name: 'TimesOp', pattern: /\*/, categories: MultiplicationOp})
-export const DivOp = createToken({name: 'DivOp', pattern: /\//, categories: MultiplicationOp})
-export const PowerOp = createToken({name: 'PowerOp', pattern: /\^/})
-export const PercentOp = createToken({name: 'PercentOp', pattern: /%/})
-export const BooleanOp = createToken({ name: 'BooleanOp', pattern: Lexer.NA })
-export const EqualsOp = createToken({name: 'EqualsOp', pattern: /=/, categories: BooleanOp})
-export const NotEqualOp = createToken({name: 'NotEqualOp', pattern: /<>/, categories: BooleanOp})
-export const GreaterThanOp = createToken({name: 'GreaterThanOp', pattern: />/, categories: BooleanOp})
-export const LessThanOp = createToken({name: 'LessThanOp', pattern: /</, categories: BooleanOp})
-export const GreaterThanOrEqualOp = createToken({name: 'GreaterThanOrEqualOp', pattern: />=/, categories: BooleanOp})
-export const LessThanOrEqualOp = createToken({name: 'LessThanOrEqualOp', pattern: /<=/, categories: BooleanOp})
-export const ConcatenateOp = createToken({name: 'ConcatenateOp', pattern: /&/})
+export const AdditionOp = createToken({
+  name: "AdditionOp",
+  pattern: Lexer.NA,
+});
+export const PlusOp = createToken({
+  name: "PlusOp",
+  pattern: /\+/,
+  categories: AdditionOp,
+});
+export const MinusOp = createToken({
+  name: "MinusOp",
+  pattern: /-/,
+  categories: AdditionOp,
+});
+export const MultiplicationOp = createToken({
+  name: "MultiplicationOp",
+  pattern: Lexer.NA,
+});
+export const TimesOp = createToken({
+  name: "TimesOp",
+  pattern: /\*/,
+  categories: MultiplicationOp,
+});
+export const DivOp = createToken({
+  name: "DivOp",
+  pattern: /\//,
+  categories: MultiplicationOp,
+});
+export const PowerOp = createToken({ name: "PowerOp", pattern: /\^/ });
+export const PercentOp = createToken({ name: "PercentOp", pattern: /%/ });
+export const BooleanOp = createToken({ name: "BooleanOp", pattern: Lexer.NA });
+export const EqualsOp = createToken({
+  name: "EqualsOp",
+  pattern: /=/,
+  categories: BooleanOp,
+});
+export const NotEqualOp = createToken({
+  name: "NotEqualOp",
+  pattern: /<>/,
+  categories: BooleanOp,
+});
+export const GreaterThanOp = createToken({
+  name: "GreaterThanOp",
+  pattern: />/,
+  categories: BooleanOp,
+});
+export const LessThanOp = createToken({
+  name: "LessThanOp",
+  pattern: /</,
+  categories: BooleanOp,
+});
+export const GreaterThanOrEqualOp = createToken({
+  name: "GreaterThanOrEqualOp",
+  pattern: />=/,
+  categories: BooleanOp,
+});
+export const LessThanOrEqualOp = createToken({
+  name: "LessThanOrEqualOp",
+  pattern: /<=/,
+  categories: BooleanOp,
+});
+export const ConcatenateOp = createToken({
+  name: "ConcatenateOp",
+  pattern: /&/,
+});
 
-export const LParen = createToken({name: 'LParen', pattern: /\(/})
-export const RParen = createToken({name: 'RParen', pattern: /\)/})
-export const ArrayLParen = createToken({name: 'ArrayLParen', pattern: /{/})
-export const ArrayRParen = createToken({name: 'ArrayRParen', pattern: /}/})
+export const LParen = createToken({ name: "LParen", pattern: /\(/ });
+export const RParen = createToken({ name: "RParen", pattern: /\)/ });
+export const ArrayLParen = createToken({ name: "ArrayLParen", pattern: /{/ });
+export const ArrayRParen = createToken({ name: "ArrayRParen", pattern: /}/ });
 
-export const StringLiteral = createToken({name: 'StringLiteral', pattern: /"([^"\\]*(\\.[^"\\]*)*)"/})
-export const ErrorLiteral = createToken({name: 'ErrorLiteral', pattern: /#[A-Za-z0-9\/]+[?!]?/})
-export const GaussianLiteral = createToken({name: 'GaussianLiteral', pattern: /N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/})
+export const StringLiteral = createToken({
+  name: "StringLiteral",
+  pattern: /"([^"\\]*(\\.[^"\\]*)*)"/,
+});
+export const ErrorLiteral = createToken({
+  name: "ErrorLiteral",
+  pattern: /#[A-Za-z0-9\/]+[?!]?/,
+});
+export const GaussianLiteral = createToken({
+  name: "GaussianLiteral",
+  pattern: /N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/,
+});
+export const ConfidenceIntervalLiteral = createToken({
+  name: "ConfidenceIntervalLiteral",
+  pattern: /P(\d+)\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]/,
+});
 
-export const RangeSeparator = createToken({ name: 'RangeSeparator', pattern: new RegExp(RANGE_OPERATOR) })
-export const ColumnRange = createToken({ name: 'ColumnRange', pattern: new RegExp(`${COLUMN_REFERENCE_PATTERN}${RANGE_OPERATOR}${COLUMN_REFERENCE_PATTERN}`) })
-export const RowRange = createToken({ name: 'RowRange', pattern: new RegExp(`${ROW_REFERENCE_PATTERN}${RANGE_OPERATOR}${ROW_REFERENCE_PATTERN}`) })
+export const RangeSeparator = createToken({
+  name: "RangeSeparator",
+  pattern: new RegExp(RANGE_OPERATOR),
+});
+export const ColumnRange = createToken({
+  name: "ColumnRange",
+  pattern: new RegExp(
+    `${COLUMN_REFERENCE_PATTERN}${RANGE_OPERATOR}${COLUMN_REFERENCE_PATTERN}`
+  ),
+});
+export const RowRange = createToken({
+  name: "RowRange",
+  pattern: new RegExp(
+    `${ROW_REFERENCE_PATTERN}${RANGE_OPERATOR}${ROW_REFERENCE_PATTERN}`
+  ),
+});
 
-export const ProcedureName = createToken({ name: 'ProcedureName', pattern: new RegExp(`([${UNICODE_LETTER_PATTERN}][${NON_RESERVED_CHARACTER_PATTERN}]*)\\(`) })
+export const ProcedureName = createToken({
+  name: "ProcedureName",
+  pattern: new RegExp(
+    `([${UNICODE_LETTER_PATTERN}][${NON_RESERVED_CHARACTER_PATTERN}]*)\\(`
+  ),
+});
 
-const cellReferenceMatcher = new CellReferenceMatcher()
+const cellReferenceMatcher = new CellReferenceMatcher();
 export const CellReference = createToken({
-  name: 'CellReference',
+  name: "CellReference",
   pattern: cellReferenceMatcher.match.bind(cellReferenceMatcher),
   start_chars_hint: cellReferenceMatcher.POSSIBLE_START_CHARACTERS,
   line_breaks: false,
-})
+});
 
-const namedExpressionMatcher = new NamedExpressionMatcher()
+const namedExpressionMatcher = new NamedExpressionMatcher();
 export const NamedExpression = createToken({
-  name: 'NamedExpression',
+  name: "NamedExpression",
   pattern: namedExpressionMatcher.match.bind(namedExpressionMatcher),
   start_chars_hint: namedExpressionMatcher.POSSIBLE_START_CHARACTERS,
   line_breaks: false,
-})
+});
 
 export interface LexerConfig {
-  ArgSeparator: TokenType,
-  NumberLiteral: TokenType,
-  OffsetProcedureName: TokenType,
-  allTokens: TokenType[],
-  errorMapping: Record<string, ErrorType>,
-  functionMapping: Record<string, string>,
-  decimalSeparator: '.' | ',',
-  ArrayColSeparator: TokenType,
-  ArrayRowSeparator: TokenType,
-  WhiteSpace: TokenType,
-  maxColumns: number,
-  maxRows: number,
-  GaussianLiteral: TokenType,
+  ArgSeparator: TokenType;
+  NumberLiteral: TokenType;
+  OffsetProcedureName: TokenType;
+  allTokens: TokenType[];
+  errorMapping: Record<string, ErrorType>;
+  functionMapping: Record<string, string>;
+  decimalSeparator: "." | ",";
+  ArrayColSeparator: TokenType;
+  ArrayRowSeparator: TokenType;
+  WhiteSpace: TokenType;
+  maxColumns: number;
+  maxRows: number;
+  GaussianLiteral: TokenType;
+  ConfidenceIntervalLiteral: TokenType;
 }
 
 /**
  * Builds the configuration object for the lexer
  */
 export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
-  const offsetProcedureNameLiteral = config.translationPackage.getFunctionTranslation('OFFSET')
-  const errorMapping = config.errorMapping
-  const functionMapping = config.translationPackage.buildFunctionMapping()
-  const whitespaceTokenRegexp = new RegExp(config.ignoreWhiteSpace === 'standard' ? ODFF_WHITESPACE_PATTERN : ALL_WHITESPACE_PATTERN)
+  const offsetProcedureNameLiteral =
+    config.translationPackage.getFunctionTranslation("OFFSET");
+  const errorMapping = config.errorMapping;
+  const functionMapping = config.translationPackage.buildFunctionMapping();
+  const whitespaceTokenRegexp = new RegExp(
+    config.ignoreWhiteSpace === "standard"
+      ? ODFF_WHITESPACE_PATTERN
+      : ALL_WHITESPACE_PATTERN
+  );
 
-  const WhiteSpace = createToken({ name: 'WhiteSpace', pattern: whitespaceTokenRegexp })
-  const ArrayRowSeparator = createToken({name: 'ArrayRowSep', pattern: config.arrayRowSeparator})
-  const ArrayColSeparator = createToken({name: 'ArrayColSep', pattern: config.arrayColumnSeparator})
-  const NumberLiteral = createToken({ name: 'NumberLiteral', pattern: new RegExp(`(([${config.decimalSeparator}]\\d+)|(\\d+([${config.decimalSeparator}]\\d*)?))(e[+-]?\\d+)?`) })
-  const OffsetProcedureName = createToken({ name: 'OffsetProcedureName', pattern: new RegExp(offsetProcedureNameLiteral, 'i') })
+  const WhiteSpace = createToken({
+    name: "WhiteSpace",
+    pattern: whitespaceTokenRegexp,
+  });
+  const ArrayRowSeparator = createToken({
+    name: "ArrayRowSep",
+    pattern: config.arrayRowSeparator,
+  });
+  const ArrayColSeparator = createToken({
+    name: "ArrayColSep",
+    pattern: config.arrayColumnSeparator,
+  });
+  const NumberLiteral = createToken({
+    name: "NumberLiteral",
+    pattern: new RegExp(
+      `(([${config.decimalSeparator}]\\d+)|(\\d+([${config.decimalSeparator}]\\d*)?))(e[+-]?\\d+)?`
+    ),
+  });
+  const OffsetProcedureName = createToken({
+    name: "OffsetProcedureName",
+    pattern: new RegExp(offsetProcedureNameLiteral, "i"),
+  });
 
-  let ArgSeparator: TokenType
-  let inject: TokenType[]
+  let ArgSeparator: TokenType;
+  let inject: TokenType[];
   if (config.functionArgSeparator === config.arrayColumnSeparator) {
-    ArgSeparator = ArrayColSeparator
-    inject = []
+    ArgSeparator = ArrayColSeparator;
+    inject = [];
   } else if (config.functionArgSeparator === config.arrayRowSeparator) {
-    ArgSeparator = ArrayRowSeparator
-    inject = []
+    ArgSeparator = ArrayRowSeparator;
+    inject = [];
   } else {
-    ArgSeparator = createToken({name: 'ArgSeparator', pattern: config.functionArgSeparator})
-    inject = [ArgSeparator]
+    ArgSeparator = createToken({
+      name: "ArgSeparator",
+      pattern: config.functionArgSeparator,
+    });
+    inject = [ArgSeparator];
   }
 
   /* order is important, first pattern is used */
@@ -136,6 +242,7 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     ...inject,
     ColumnRange,
     RowRange,
+    ConfidenceIntervalLiteral,
     GaussianLiteral,
     NumberLiteral,
     StringLiteral,
@@ -148,7 +255,7 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     NamedExpression,
     ArrayRowSeparator,
     ArrayColSeparator,
-  ]
+  ];
 
   return {
     ArgSeparator,
@@ -164,6 +271,6 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     maxColumns: config.maxColumns,
     maxRows: config.maxRows,
     GaussianLiteral,
-  }
-}
-
+    ConfidenceIntervalLiteral,
+  };
+};

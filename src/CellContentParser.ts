@@ -14,6 +14,7 @@ import {
   SampledDistribution,
   TimeNumber,
   cloneNumber,
+  confidenceIntervalToGaussian,
   getRawValue,
 } from "./interpreter/InterpreterValue";
 import { DateTimeHelper, timeToNumber } from "./DateTimeHelper";
@@ -164,6 +165,32 @@ export class CellContentParser {
         const mean = Number(gaussianMatch[1]);
         const variance = Number(gaussianMatch[2]);
         if (!isNaN(mean) && !isNaN(variance)) {
+          return new CellContent.Number(
+            new GaussianNumber(mean, variance, this.config)
+          );
+        }
+      }
+
+      // Try to parse as confidence interval P{confidence}[lower, upper]
+      const confidenceIntervalMatch =
+        /^P(\d+)\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]$/.exec(
+          content
+        );
+      if (confidenceIntervalMatch) {
+        const confidenceLevel = Number(confidenceIntervalMatch[1]);
+        const lower = Number(confidenceIntervalMatch[2]);
+        const upper = Number(confidenceIntervalMatch[3]);
+        if (
+          !isNaN(confidenceLevel) &&
+          !isNaN(lower) &&
+          !isNaN(upper) &&
+          lower <= upper
+        ) {
+          const { mean, variance } = confidenceIntervalToGaussian(
+            lower,
+            upper,
+            confidenceLevel
+          );
           return new CellContent.Number(
             new GaussianNumber(mean, variance, this.config)
           );
