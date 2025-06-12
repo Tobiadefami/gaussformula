@@ -1,110 +1,137 @@
 <br>
 <p align="center">
-  <a href="https://hyperformula.handsontable.com/">
-    <img src="https://raw.githubusercontent.com/handsontable/hyperformula/master/github-hf-logo-blue.svg" width="350" height="71" alt="HyperFormula - A headless spreadsheet, a parser and evaluator of Excel formulas"/>
-  </a>
+  <img src="assets/gaussformula.png" width="350" alt="GaussFormula Logo"/>
 </p>
 
 <p align="center">
-  <strong>An open-source headless spreadsheet for business web apps</strong>
-</p>
-
-<p align="center">
-  <a href="https://npmjs.com/package/hyperformula"><img src="https://img.shields.io/npm/dt/hyperformula.svg" alt="npm total downloads"></a>
-  <a href="https://npmjs.com/package/hyperformula"><img src="https://img.shields.io/npm/dm/hyperformula.svg" alt="npm monthly downloads"></a>
-  <a href="https://github.com/handsontable/hyperformula/graphs/contributors"><img src="https://img.shields.io/github/contributors/handsontable/hyperformula" alt="GitHub contributors"></a>
-  <a href="https://snyk.io/test/github/handsontable/hyperformula?targetFile=package.json"><img src="https://snyk.io/test/github/handsontable/hyperformula/badge.svg?targetFile=package.json" alt="Known Vulnerabilities"></a>
-  <br>
-  <a href="https://app.fossa.io/projects/git%2Bgithub.com%2Fhandsontable%2Fhyperformula?ref=badge_shield"><img src="https://app.fossa.io/api/projects/git%2Bgithub.com%2Fhandsontable%2Fhyperformula.svg?type=shield" alt="FOSSA Status"></a>
-  <a href="https://github.com/handsontable/hyperformula/actions?query=workflow%3Abuild+branch%3Amaster"><img src="https://img.shields.io/github/actions/workflow/status/handsontable/hyperformula/build.yml?branch=master" alt="GitHub Workflow Status"></a>
-  <a href="https://codecov.io/gh/handsontable/hyperformula"><img src="https://codecov.io/gh/handsontable/hyperformula/branch/master/graph/badge.svg?token=5k9ZQv8azO" alt="codecov"></a>
+  <strong>GaussFormula: Spreadsheet Engine with Uncertainty Support</strong>
 </p>
 
 ---
 
-HyperFormula is a headless spreadsheet built in TypeScript, serving as both a parser and evaluator of spreadsheet formulas. It can be integrated into your browser or utilized as a service with Node.js as your back-end technology.
+## About GaussFormula
 
-## What HyperFormula can be used for?
-HyperFormula doesn't assume any existing user interface, making it a general-purpose library that can be used in various business applications. Here are some examples:
+**GaussFormula** is a headless spreadsheet engine for JavaScript and TypeScript, designed for business and scientific web applications. It is a fork of HyperFormula with a major new feature: **native support for Gaussian numbers**—values with uncertainty, represented as `N(mean, variance)`.
 
-- Custom spreadsheet-like app
-- Business logic builder
-- Forms and form builder
-- Educational app
-- Online calculator
+GaussFormula is ideal for:
+- Custom spreadsheet-like apps
+- Scientific and engineering tools
+- Business logic builders
+- Educational apps
+- Online calculators
 
-## Features
+---
 
-- [Function syntax compatible with Microsoft Excel](https://hyperformula.handsontable.com/guide/compatibility-with-microsoft-excel.html) and [Google Sheets](https://hyperformula.handsontable.com/guide/compatibility-with-google-sheets.html)
+## Key Features
+
+- **Function syntax compatible with Microsoft Excel and Google Sheets**
 - High-speed parsing and evaluation of spreadsheet formulas
-- [A library of ~400 built-in functions](https://hyperformula.handsontable.com/guide/built-in-functions.html)
-- [Support for custom functions](https://hyperformula.handsontable.com/guide/custom-functions.html)
-- [Support for Node.js](https://hyperformula.handsontable.com/guide/server-side-installation.html#install-with-npm-or-yarn)
-- [Support for undo/redo](https://hyperformula.handsontable.com/guide/undo-redo.html)
-- [Support for CRUD operations](https://hyperformula.handsontable.com/guide/basic-operations.html)
-- [Support for clipboard](https://hyperformula.handsontable.com/guide/clipboard-operations.html)
-- [Support for named expressions](https://hyperformula.handsontable.com/guide/named-expressions.html)
-- [Support for data sorting](https://hyperformula.handsontable.com/guide/sorting-data.html)
-- [Support for formula localization with 17 built-in languages](https://hyperformula.handsontable.com/guide/i18n-features.html)
+- ~400 built-in functions
+- **Native support for Gaussian numbers**: work with values that include uncertainty, and propagate it through calculations
+- Support for custom functions
+- Node.js and browser support
+- Undo/redo, CRUD operations, clipboard, named expressions, data sorting
+- Formula localization (17+ languages)
 - GPLv3 license
-- Maintained by the team that stands behind the [Handsontable](https://handsontable.com/) data grid
 
-## Documentation
+---
 
-- [Client-side installation](https://hyperformula.handsontable.com/guide/client-side-installation.html)
-- [Server-side installation](https://hyperformula.handsontable.com/guide/server-side-installation.html)
-- [Basic usage](https://hyperformula.handsontable.com/guide/basic-usage.html)
-- [Configuration options](https://hyperformula.handsontable.com/guide/configuration-options.html)
-- [List of built-in functions](https://hyperformula.handsontable.com/guide/built-in-functions.html)
-- [API Reference](https://hyperformula.handsontable.com/api/)
-
-## Integrations
-
-- [Integration with React](https://hyperformula.handsontable.com/guide/integration-with-react.html#demo)
-- [Integration with Angular](https://hyperformula.handsontable.com/guide/integration-with-angular.html#demo)
-- [Integration with Vue](https://hyperformula.handsontable.com/guide/integration-with-vue.html#demo)
-- [Integration with Svelte](https://hyperformula.handsontable.com/guide/integration-with-svelte.html#demo)
-
-## Installation and usage
-
-Install the library from [npm](https://www.npmjs.com/package/hyperformula) like so:
+## Installation
 
 ```bash
-npm install hyperformula
+yarn add gaussformula
+# or
+npm install gaussformula
 ```
 
-Once installed, you can use it to develop applications tailored to your specific business needs. Here, we've used it to craft a form that calculates mortgage payments using the `PMT` formula.
+---
+
+## Usage Example
 
 ```js
-import { HyperFormula } from 'hyperformula';
+import { HyperFormula } from 'gaussformula';
 
-// Create a HyperFormula instance
-const hf = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' });
+// Create a GaussFormula instance
+const gf = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' });
 
-// Add an empty sheet
-const sheetName = hf.addSheet('Mortgage Calculator');
-const sheetId = hf.getSheetId(sheetName);
+// Add a sheet and enter Gaussian numbers
+const sheetName = gf.addSheet('Demo');
+const sheetId = gf.getSheetId(sheetName);
 
-// Enter the mortgage parameters
-hf.addNamedExpression('AnnualInterestRate', '8%');
-hf.addNamedExpression('NumberOfMonths', 360);
-hf.addNamedExpression('LoanAmount', 800000);
+gf.setCellContents({ sheet: sheetId, row: 0, col: 0 }, [['N(1, 2)', '3', '=A1+B1', '=A1*B1']]);
 
-// Use the PMT function to calculate the monthly payment
-hf.setCellContents({ sheet: sheetId, row: 0, col: 0 }, [['Monthly Payment', '=PMT(AnnualInterestRate/12, NumberOfMonths, -LoanAmount)']]);
-
-// Display the result
-console.log(`${hf.getCellValue({ sheet: sheetId, row: 0, col: 0 })}: ${hf.getCellValue({ sheet: sheetId, row: 0, col: 1 })}`);
+console.log(gf.getCellValue({ sheet: sheetId, row: 0, col: 2 })); // GaussianNumber { mean: 4, variance: 2 }
+console.log(gf.getCellValue({ sheet: sheetId, row: 0, col: 3 })); // GaussianNumber { mean: 3, variance: 18 }
 ```
 
-[Run this code in StackBlitz](https://stackblitz.com/github/handsontable/hyperformula-demos/tree/3.0.x/mortgage-calculator)
+---
+
+## What’s Unique: Gaussian Number Support
+
+GaussFormula extends HyperFormula with **first-class support for Gaussian numbers**—values with uncertainty, written as `N(mean, variance)`. These numbers are parsed, stored, and propagated through arithmetic operations according to rules of error propagation.
+
+**Example:**
+
+- `A1 -> N(1,2)`
+- `=A1 + 3` results in `N(4, 2)`
+- `=A1 * 3` results in `N(3, 18)`
+
+See the [technical documentation below](#technical-details-of-gaussian-number-support) for a deep dive into the implementation.
+
+---
+
+## Technical Details of Gaussian Number Support
+
+GaussFormula introduces:
+- A new `GaussianNumber` class and type system integration
+- Parser and lexer changes to recognize `N(mean, variance)` syntax
+- Interpreter and arithmetic logic for correct error propagation
+- Serialization and export logic for Gaussian numbers
+- Comprehensive tests for parsing, arithmetic, and error handling
+
+<details>
+<summary>Click to expand technical details</summary>
+
+# Gaussian Number Support in GaussFormula
+
+## Overview
+
+This document provides a detailed technical analysis of the changes made to implement Gaussian number support in GaussFormula. Gaussian numbers represent values with uncertainty and are represented as `N(mean, variance)` where:
+- `mean` is the central value
+- `variance` is a measure of the uncertainty
+
+| File | Changes | Purpose |
+|------|---------|---------|
+| `src/interpreter/InterpreterValue.ts` | Added `GaussianNumber` class and `NUMBER_GAUSSIAN` enum value | Core representation of Gaussian numbers |
+| `src/parser/Ast.ts` | Added `GAUSSIAN_NUMBER` to `AstNodeType` enum and `GaussianNumberAst` interface | AST representation for parsing |
+| `src/parser/FormulaParser.ts` | Added Gaussian number parsing | Recognize and parse N(mean, variance) syntax |
+| `src/interpreter/Interpreter.ts` | Added case for `AstNodeType.GAUSSIAN_NUMBER` | Handle Gaussian AST nodes during evaluation |
+| `src/interpreter/ArithmeticHelper.ts` | Added arithmetic operations | Implement math operations for Gaussian numbers |
+| `src/Exporter.ts` | Modified `exportValue` | Export Gaussian numbers as cell values |
+| `src/CellValue.ts` | Added `GaussianNumber` to types | Type system integration |
+| `src/Serialization.ts` | Added formatting for Gaussian numbers | Proper string representation |
+| `test/interpreter/gaussian-arithmetic.spec.ts` | Modified tests | Test Gaussian arithmetic operations |
+
+... (full technical details as in the original documentation) ...
+
+</details>
+
+---
 
 ## Contributing
 
-Contributions are welcome, but before you make them, please read the [Contributing Guide](https://hyperformula.handsontable.com/guide/contributing.html) and accept the [Contributor License Agreement](https://goo.gl/forms/yuutGuN0RjsikVpM2).
+Contributions are welcome! Please open issues or pull requests on [GitHub](https://github.com/Tobiadefami/gaussformula).
+
+---
 
 ## License
 
-HyperFormula is available under two different licenses: GPLv3 and proprietary. The proprietary license can be purchased by [contacting our team](https://handsontable.com/get-a-quote) at Handsontable.
+GaussFormula is available under the GPLv3 license.
 
-Copyright (c) Handsoncode
+---
+
+## Acknowledgments
+
+GaussFormula is a fork of the outstanding [HyperFormula](https://github.com/handsontable/hyperformula) project by Handsoncode. Huge thanks to the original authors and maintainers for their work on the core spreadsheet engine.
+
+---

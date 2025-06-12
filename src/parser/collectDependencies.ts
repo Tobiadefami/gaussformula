@@ -3,17 +3,17 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {FunctionRegistry} from '../interpreter/FunctionRegistry'
 import {
   AddressDependency,
-  Ast,
-  AstNodeType,
   CellRangeDependency,
   ColumnRangeDependency,
   NamedExpressionDependency,
   RelativeDependency,
   RowRangeDependency
 } from './'
+import {Ast, AstNodeType} from './Ast'
+
+import {FunctionRegistry} from '../interpreter/FunctionRegistry'
 
 const collectDependenciesFn = (ast: Ast, functionRegistry: FunctionRegistry, dependenciesSet: RelativeDependency[], needArgument: boolean) => {
   switch (ast.type) {
@@ -86,7 +86,7 @@ const collectDependenciesFn = (ast: Ast, functionRegistry: FunctionRegistry, dep
   }
 }
 
-export const collectDependencies = (ast: Ast, functionRegistry: FunctionRegistry) => {
+export const collectDependencies = (ast: Ast, functionRegistry: FunctionRegistry): RelativeDependency[] => {
   const result = new Array<RelativeDependency>()
   collectDependenciesFn(ast, functionRegistry, result, true)
   return result

@@ -30,40 +30,50 @@ export {
 } from './FormulaParser'
 
 export {
-  Ast,
+  // Only export enums (which exist at runtime)
   AstNodeType,
   ParsingErrorType,
-
-  ProcedureAst,
-  NamedExpressionAst,
-  ErrorAst,
-  CellReferenceAst,
-  CellRangeAst,
-  StringAst,
-  PowerOpAst,
-  PlusOpAst,
-  PlusUnaryOpAst,
-  NumberAst,
-  MinusUnaryOpAst,
-  MinusOpAst,
-  ConcatenateOpAst,
-  NotEqualOpAst,
-  LessThanOrEqualOpAst,
-  LessThanOpAst,
-  GreaterThanOpAst,
-  GreaterThanOrEqualOpAst,
-  EqualsOpAst,
-
+  
+  // Only export builder functions (which exist at runtime)
   buildProcedureAst,
   buildCellRangeAst,
   buildParsingErrorAst,
   buildCellErrorAst,
+
+  // Export types
+  Ast,
+  AstWithWhitespace,
+  AstWithInternalWhitespace,
+  EmptyArgAst,
+  NumberAst,
+  GaussianNumberAst,
+  StringAst,
+  CellRangeAst,
+  CellReferenceAst,
+  ColumnRangeAst,
+  BinaryOpAst,
+  ConcatenateOpAst,
+  EqualsOpAst,
+  NotEqualOpAst,
+  GreaterThanOpAst,
+  LessThanOpAst,
+  PlusOpAst,
+  PowerOpAst,
+  MinusUnaryOpAst,
+  PlusUnaryOpAst,
+  ProcedureAst,
+  ArrayAst,
+  NamedExpressionAst,
+  ParenthesisAst,
+  ErrorAst,
 } from './Ast'
 
 export {Unparser} from './Unparser'
 
 export {
   RelativeDependency,
+  RelativeDependencyType,
+  RangeDependency,
   AddressDependency,
   CellRangeDependency,
   ColumnRangeDependency,

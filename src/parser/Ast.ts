@@ -3,12 +3,14 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {IToken} from 'chevrotain'
-import {CellError} from '../Cell'
+import {ExtendedNumber, GaussianNumber} from '../interpreter/InterpreterValue'
+
 import {AddressWithSheet} from './Address'
 import {CellAddress} from './CellAddress'
+import {CellError} from '../Cell'
 import {ColumnAddress} from './ColumnAddress'
 import {ExtendedToken} from './FormulaParser'
+import {IToken} from 'chevrotain'
 import {RowAddress} from './RowAddress'
 
 export type Ast =
@@ -40,6 +42,7 @@ export type Ast =
   | ErrorWithRawInputAst
   | EmptyArgAst
   | ArrayAst
+  | GaussianNumberAst
 
 export interface ParsingError {
   type: ParsingErrorType,
@@ -66,6 +69,7 @@ export enum AstNodeType {
   EMPTY = 'EMPTY',
 
   NUMBER = 'NUMBER',
+  GAUSSIAN_NUMBER = 'GAUSSIAN_NUMBER',
   STRING = 'STRING',
 
   MINUS_UNARY_OP = 'MINUS_UNARY_OP',
@@ -104,6 +108,9 @@ export enum AstNodeType {
   ERROR_WITH_RAW_INPUT = 'ERROR_WITH_RAW_INPUT',
 
   ARRAY = 'ARRAY',
+
+  TRUE = 'TRUE',
+  FALSE = 'FALSE',
 }
 
 export enum RangeSheetReferenceType {
@@ -136,6 +143,17 @@ export interface NumberAst extends AstWithWhitespace {
 
 export const buildNumberAst = (value: number, leadingWhitespace?: IToken): NumberAst => ({
   type: AstNodeType.NUMBER,
+  value: value,
+  leadingWhitespace: leadingWhitespace?.image,
+})
+
+export interface GaussianNumberAst extends AstWithWhitespace {
+  type: AstNodeType.GAUSSIAN_NUMBER,
+  value: GaussianNumber,
+}
+
+export const buildGaussianNumberAst = (value: GaussianNumber, leadingWhitespace?: IToken): GaussianNumberAst => ({
+  type: AstNodeType.GAUSSIAN_NUMBER,
   value: value,
   leadingWhitespace: leadingWhitespace?.image,
 })

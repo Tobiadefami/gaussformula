@@ -3,32 +3,33 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
+import {ColumnSearchStrategy, buildColumnSearchStrategy} from './Lookup/SearchStrategy'
+import {EmptyStatistics, StatType, Statistics} from './statistics'
+import {ParserWithCaching, Unparser, buildLexerConfig} from './parser'
+import {Serialization, SerializedNamedExpression} from './Serialization'
+import {Sheet, Sheets, findBoundaries, validateAsSheet} from './Sheet'
+
+import {ArithmeticHelper} from './interpreter/ArithmeticHelper'
 import {ArraySizePredictor} from './ArraySize'
 import {CellContentParser} from './CellContentParser'
 import {ClipboardOperations} from './ClipboardOperations'
 import {Config} from './Config'
+import {ConfigParams} from './ConfigParams'
 import {CrudOperations} from './CrudOperations'
 import {DateTimeHelper} from './DateTimeHelper'
 import {DependencyGraph} from './DependencyGraph'
-import {SheetSizeLimitExceededError} from './errors'
 import {Evaluator} from './Evaluator'
 import {Exporter} from './Exporter'
-import {GraphBuilder} from './GraphBuilder'
-import {UIElement} from './i18n'
-import {ArithmeticHelper} from './interpreter/ArithmeticHelper'
 import {FunctionRegistry} from './interpreter/FunctionRegistry'
+import {GraphBuilder} from './GraphBuilder'
 import {Interpreter} from './interpreter/Interpreter'
 import {LazilyTransformingAstService} from './LazilyTransformingAstService'
-import {buildColumnSearchStrategy, ColumnSearchStrategy} from './Lookup/SearchStrategy'
 import {NamedExpressions} from './NamedExpressions'
 import {NumberLiteralHelper} from './NumberLiteralHelper'
 import {Operations} from './Operations'
-import {buildLexerConfig, ParserWithCaching, Unparser} from './parser'
-import {Serialization, SerializedNamedExpression} from './Serialization'
-import {findBoundaries, Sheet, Sheets, validateAsSheet} from './Sheet'
-import {EmptyStatistics, Statistics, StatType} from './statistics'
+import {SheetSizeLimitExceededError} from './errors'
+import {UIElement} from './i18n'
 import {UndoRedo} from './UndoRedo'
-import {ConfigParams} from './ConfigParams'
 
 export type EngineState = {
   config: Config,
@@ -111,7 +112,7 @@ export class BuildEngineFactory {
     })
 
     const exporter = new Exporter(config, namedExpressions, sheetMapping.fetchDisplayName, lazilyTransformingAstService)
-    const serialization = new Serialization(dependencyGraph, unparser, exporter)
+    const serialization = new Serialization(dependencyGraph, unparser, exporter, config)
 
     const interpreter = new Interpreter(config, dependencyGraph, columnSearch, stats, arithmeticHelper, functionRegistry, namedExpressions, serialization, arraySizePredictor, dateTimeHelper)
 

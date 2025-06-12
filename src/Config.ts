@@ -4,164 +4,198 @@
  */
 
 import {
+  AlwaysDense,
+  ChooseAddressMapping,
+} from "./DependencyGraph/AddressMapping/ChooseAddressMappingPolicy";
+import { ConfigParams, ConfigParamsList } from "./ConfigParams";
+import { ConfigValueEmpty, ExpectedValueOfTypeError } from "./errors";
+import {
+  DateTime,
+  SimpleDate,
+  SimpleDateTime,
+  SimpleTime,
+  instanceOfSimpleDate,
+} from "./DateTimeHelper";
+import {
+  LicenseKeyValidityState,
+  checkLicenseKeyValidity,
+} from "./helpers/licenseKeyValidator";
+import {
   configCheckIfParametersNotInConflict,
   configValueFromParam,
   configValueFromParamCheck,
   validateNumberToBeAtLeast,
-  validateNumberToBeAtMost
-} from './ArgumentSanitization'
-import {TranslatableErrorType} from './Cell'
-import {defaultParseToDateTime} from './DateTimeDefault'
-import {DateTime, instanceOfSimpleDate, SimpleDate, SimpleDateTime, SimpleTime} from './DateTimeHelper'
-import {AlwaysDense, ChooseAddressMapping} from './DependencyGraph/AddressMapping/ChooseAddressMappingPolicy'
-import {ConfigValueEmpty, ExpectedValueOfTypeError} from './errors'
-import {defaultStringifyDateTime, defaultStringifyDuration} from './format/format'
-import {checkLicenseKeyValidity, LicenseKeyValidityState} from './helpers/licenseKeyValidator'
-import {HyperFormula} from './HyperFormula'
-import {TranslationPackage} from './i18n'
-import {FunctionPluginDefinition} from './interpreter'
-import {Maybe} from './Maybe'
-import {ParserConfig} from './parser/ParserConfig'
-import {ConfigParams, ConfigParamsList} from './ConfigParams'
+  validateNumberToBeAtMost,
+} from "./ArgumentSanitization";
+import {
+  defaultStringifyDateTime,
+  defaultStringifyDuration,
+} from "./format/format";
 
-const privatePool: WeakMap<Config, { licenseKeyValidityState: LicenseKeyValidityState }> = new WeakMap()
+import { FunctionPluginDefinition } from "./interpreter";
+import { HyperFormula } from "./HyperFormula";
+import { Maybe } from "./Maybe";
+import { ParserConfig } from "./parser/ParserConfig";
+import { TranslatableErrorType } from "./Cell";
+import { TranslationPackage } from "./i18n";
+import { defaultParseToDateTime } from "./DateTimeDefault";
+
+const privatePool: WeakMap<
+  Config,
+  { licenseKeyValidityState: LicenseKeyValidityState }
+> = new WeakMap();
 
 export class Config implements ConfigParams, ParserConfig {
-
   public static defaultConfig: ConfigParams = {
     accentSensitive: false,
-    currencySymbol: ['$'],
+    currencySymbol: ["$"],
     caseSensitive: false,
-    caseFirst: 'lower',
+    caseFirst: "lower",
     context: undefined,
     chooseAddressMappingPolicy: new AlwaysDense(),
-    dateFormats: ['DD/MM/YYYY', 'DD/MM/YY'],
-    decimalSeparator: '.',
+    dateFormats: ["DD/MM/YYYY", "DD/MM/YY"],
+    decimalSeparator: ".",
     evaluateNullToZero: false,
-    functionArgSeparator: ',',
+    functionArgSeparator: ",",
     functionPlugins: [],
     ignorePunctuation: false,
-    language: 'enGB',
-    ignoreWhiteSpace: 'standard',
-    licenseKey: '',
+    language: "enGB",
+    ignoreWhiteSpace: "standard",
+    licenseKey: "",
     leapYear1900: false,
-    localeLang: 'en',
+    localeLang: "en",
     matchWholeCell: true,
-    arrayColumnSeparator: ',',
-    arrayRowSeparator: ';',
+    arrayColumnSeparator: ",",
+    arrayRowSeparator: ";",
     maxRows: 40_000,
     maxColumns: 18_278,
     nullYear: 30,
-    nullDate: {year: 1899, month: 12, day: 30},
+    nullDate: { year: 1899, month: 12, day: 30 },
     parseDateTime: defaultParseToDateTime,
     precisionEpsilon: 1e-13,
     precisionRounding: 10,
     smartRounding: true,
     stringifyDateTime: defaultStringifyDateTime,
     stringifyDuration: defaultStringifyDuration,
-    timeFormats: ['hh:mm', 'hh:mm:ss.sss'],
-    thousandSeparator: '',
+    sampleSize: 1000,
+    timeFormats: ["hh:mm", "hh:mm:ss.sss"],
+    thousandSeparator: "",
     undoLimit: 20,
     useRegularExpressions: false,
     useWildcards: true,
     useColumnIndex: false,
     useStats: false,
     useArrayArithmetic: false,
-  }
+  };
 
   /** @inheritDoc */
-  public readonly useArrayArithmetic: boolean
+  public readonly sampleSize: number;
   /** @inheritDoc */
-  public readonly caseSensitive: boolean
+  public readonly useArrayArithmetic: boolean;
   /** @inheritDoc */
-  public readonly chooseAddressMappingPolicy: ChooseAddressMapping
+  public readonly caseSensitive: boolean;
   /** @inheritDoc */
-  public readonly accentSensitive: boolean
+  public readonly chooseAddressMappingPolicy: ChooseAddressMapping;
   /** @inheritDoc */
-  public readonly caseFirst: 'upper' | 'lower' | 'false'
+  public readonly accentSensitive: boolean;
   /** @inheritDoc */
-  public readonly dateFormats: string[]
+  public readonly caseFirst: "upper" | "lower" | "false";
   /** @inheritDoc */
-  public readonly timeFormats: string[]
+  public readonly dateFormats: string[];
   /** @inheritDoc */
-  public readonly functionArgSeparator: string
+  public readonly timeFormats: string[];
   /** @inheritDoc */
-  public readonly arrayColumnSeparator: ',' | ';'
+  public readonly functionArgSeparator: string;
   /** @inheritDoc */
-  public readonly arrayRowSeparator: ';' | '|'
+  public readonly arrayColumnSeparator: "," | ";";
   /** @inheritDoc */
-  public readonly decimalSeparator: '.' | ','
+  public readonly arrayRowSeparator: ";" | "|";
   /** @inheritDoc */
-  public readonly thousandSeparator: '' | ',' | ' ' | '.'
+  public readonly decimalSeparator: "." | ",";
   /** @inheritDoc */
-  public readonly language: string
+  public readonly thousandSeparator: "" | "," | " " | ".";
   /** @inheritDoc */
-  public readonly ignoreWhiteSpace: 'standard' | 'any'
+  public readonly language: string;
   /** @inheritDoc */
-  public readonly licenseKey: string
+  public readonly ignoreWhiteSpace: "standard" | "any";
+  /** @inheritDoc */
+  public readonly licenseKey: string;
   /** @inheritDoc */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public readonly functionPlugins: FunctionPluginDefinition[]
+  public readonly functionPlugins: FunctionPluginDefinition[];
   /** @inheritDoc */
-  public readonly leapYear1900: boolean
+  public readonly leapYear1900: boolean;
   /** @inheritDoc */
-  public readonly ignorePunctuation: boolean
+  public readonly ignorePunctuation: boolean;
   /** @inheritDoc */
-  public readonly localeLang: string
+  public readonly localeLang: string;
   /** @inheritDoc */
-  public readonly evaluateNullToZero: boolean
+  public readonly evaluateNullToZero: boolean;
   /** @inheritDoc */
-  public readonly nullYear: number
+  public readonly nullYear: number;
   /** @inheritDoc */
-  public readonly parseDateTime: (dateTimeString: string, dateFormat?: string, timeFormat?: string) => Maybe<DateTime>
+  public readonly parseDateTime: (
+    dateTimeString: string,
+    dateFormat?: string,
+    timeFormat?: string
+  ) => Maybe<DateTime>;
   /** @inheritDoc */
-  public readonly stringifyDateTime: (date: SimpleDateTime, formatArg: string) => Maybe<string>
+  public readonly stringifyDateTime: (
+    date: SimpleDateTime,
+    formatArg: string
+  ) => Maybe<string>;
   /** @inheritDoc */
-  public readonly stringifyDuration: (time: SimpleTime, formatArg: string) => Maybe<string>
+  public readonly stringifyDuration: (
+    time: SimpleTime,
+    formatArg: string
+  ) => Maybe<string>;
   /** @inheritDoc */
-  public readonly precisionEpsilon: number
+  public readonly precisionEpsilon: number;
   /** @inheritDoc */
-  public readonly precisionRounding: number
+  public readonly precisionRounding: number;
   /** @inheritDoc */
-  public readonly smartRounding: boolean
+  public readonly smartRounding: boolean;
   /** @inheritDoc */
-  public readonly useColumnIndex: boolean
+  public readonly useColumnIndex: boolean;
   /** @inheritDoc */
-  public readonly useStats: boolean
+  public readonly useStats: boolean;
   /** @inheritDoc */
-  public readonly nullDate: SimpleDate
+  public readonly nullDate: SimpleDate;
   /** @inheritDoc */
-  public readonly currencySymbol: string[]
+  public readonly currencySymbol: string[];
   /** @inheritDoc */
-  public readonly undoLimit: number
+  public readonly undoLimit: number;
   /** @inheritDoc */
-  public readonly context: unknown
+  public readonly context: unknown;
 
   /**
    * Built automatically based on translation package.
    *
    * @internal
    */
-  public readonly errorMapping: Record<string, TranslatableErrorType>
+  public readonly errorMapping: Record<string, TranslatableErrorType>;
   /** @inheritDoc */
-  public readonly maxRows: number
+  public readonly maxRows: number;
   /** @inheritDoc */
-  public readonly maxColumns: number
+  public readonly maxColumns: number;
 
   /**
    * Built automatically based on language.
    *
    * @internal
    */
-  public readonly translationPackage: TranslationPackage
+  public readonly translationPackage: TranslationPackage;
   /** @inheritDoc */
-  public readonly useRegularExpressions: boolean
+  public readonly useRegularExpressions: boolean;
   /** @inheritDoc */
-  public readonly useWildcards: boolean
+  public readonly useWildcards: boolean;
   /** @inheritDoc */
-  public readonly matchWholeCell: boolean
+  public readonly matchWholeCell: boolean;
 
-  constructor(options: Partial<ConfigParams> = {}, showDeprecatedWarns: boolean = true) {
+  constructor(
+    options: Partial<ConfigParams> = {},
+    showDeprecatedWarns: boolean = true
+  ) {
     const {
       accentSensitive,
       caseSensitive,
@@ -190,6 +224,7 @@ export class Config implements ConfigParams, ParserConfig {
       parseDateTime,
       precisionEpsilon,
       precisionRounding,
+      sampleSize,
       stringifyDateTime,
       stringifyDuration,
       smartRounding,
@@ -201,90 +236,220 @@ export class Config implements ConfigParams, ParserConfig {
       useColumnIndex,
       useRegularExpressions,
       useWildcards,
-    } = options
+    } = options;
 
     if (showDeprecatedWarns) {
-      Config.warnDeprecatedOptions(options)
+      Config.warnDeprecatedOptions(options);
     }
 
-    this.useArrayArithmetic = configValueFromParam(useArrayArithmetic, 'boolean', 'useArrayArithmetic')
-    this.accentSensitive = configValueFromParam(accentSensitive, 'boolean', 'accentSensitive')
-    this.caseSensitive = configValueFromParam(caseSensitive, 'boolean', 'caseSensitive')
-    this.caseFirst = configValueFromParam(caseFirst, ['upper', 'lower', 'false'], 'caseFirst')
-    this.ignorePunctuation = configValueFromParam(ignorePunctuation, 'boolean', 'ignorePunctuation')
-    this.chooseAddressMappingPolicy = chooseAddressMappingPolicy ?? Config.defaultConfig.chooseAddressMappingPolicy
-    this.dateFormats = [...configValueFromParamCheck(dateFormats, Array.isArray, 'array', 'dateFormats')]
-    this.timeFormats = [...configValueFromParamCheck(timeFormats, Array.isArray, 'array', 'timeFormats')]
-    this.functionArgSeparator = configValueFromParam(functionArgSeparator, 'string', 'functionArgSeparator')
-    this.decimalSeparator = configValueFromParam(decimalSeparator, ['.', ','], 'decimalSeparator')
-    this.language = configValueFromParam(language, 'string', 'language')
-    this.ignoreWhiteSpace = configValueFromParam(ignoreWhiteSpace, ['standard', 'any'], 'ignoreWhiteSpace')
-    this.licenseKey = configValueFromParam(licenseKey, 'string', 'licenseKey')
-    this.thousandSeparator = configValueFromParam(thousandSeparator, ['', ',', ' ', '.'], 'thousandSeparator')
-    this.arrayColumnSeparator = configValueFromParam(arrayColumnSeparator, [',', ';'], 'arrayColumnSeparator')
-    this.arrayRowSeparator = configValueFromParam(arrayRowSeparator, [';', '|'], 'arrayRowSeparator')
-    this.localeLang = configValueFromParam(localeLang, 'string', 'localeLang')
-    this.functionPlugins = [...(functionPlugins ?? Config.defaultConfig.functionPlugins)]
-    this.smartRounding = configValueFromParam(smartRounding, 'boolean', 'smartRounding')
-    this.evaluateNullToZero = configValueFromParam(evaluateNullToZero, 'boolean', 'evaluateNullToZero')
-    this.nullYear = configValueFromParam(nullYear, 'number', 'nullYear')
-    validateNumberToBeAtLeast(this.nullYear, 'nullYear', 0)
-    validateNumberToBeAtMost(this.nullYear, 'nullYear', 100)
-    this.precisionRounding = configValueFromParam(precisionRounding, 'number', 'precisionRounding')
-    validateNumberToBeAtLeast(this.precisionRounding, 'precisionRounding', 0)
-    this.precisionEpsilon = configValueFromParam(precisionEpsilon, 'number', 'precisionEpsilon')
-    validateNumberToBeAtLeast(this.precisionEpsilon, 'precisionEpsilon', 0)
-    this.useColumnIndex = configValueFromParam(useColumnIndex, 'boolean', 'useColumnIndex')
-    this.useStats = configValueFromParam(useStats, 'boolean', 'useStats')
-    this.parseDateTime = configValueFromParam(parseDateTime, 'function', 'parseDateTime')
-    this.stringifyDateTime = configValueFromParam(stringifyDateTime, 'function', 'stringifyDateTime')
-    this.stringifyDuration = configValueFromParam(stringifyDuration, 'function', 'stringifyDuration')
-    this.translationPackage = HyperFormula.getLanguage(this.language)
-    this.errorMapping = this.translationPackage.buildErrorMapping()
-    this.nullDate = configValueFromParamCheck(nullDate, instanceOfSimpleDate, 'IDate', 'nullDate')
-    this.leapYear1900 = configValueFromParam(leapYear1900, 'boolean', 'leapYear1900')
-    this.undoLimit = configValueFromParam(undoLimit, 'number', 'undoLimit')
-    this.useRegularExpressions = configValueFromParam(useRegularExpressions, 'boolean', 'useRegularExpressions')
-    this.useWildcards = configValueFromParam(useWildcards, 'boolean', 'useWildcards')
-    this.matchWholeCell = configValueFromParam(matchWholeCell, 'boolean', 'matchWholeCell')
-    validateNumberToBeAtLeast(this.undoLimit, 'undoLimit', 0)
-    this.maxRows = configValueFromParam(maxRows, 'number', 'maxRows')
-    validateNumberToBeAtLeast(this.maxRows, 'maxRows', 1)
-    this.maxColumns = configValueFromParam(maxColumns, 'number', 'maxColumns')
-    this.currencySymbol = this.setupCurrencySymbol(currencySymbol)
-    validateNumberToBeAtLeast(this.maxColumns, 'maxColumns', 1)
-    this.context = context
+    this.useArrayArithmetic = configValueFromParam(
+      useArrayArithmetic,
+      "boolean",
+      "useArrayArithmetic"
+    );
+    this.accentSensitive = configValueFromParam(
+      accentSensitive,
+      "boolean",
+      "accentSensitive"
+    );
+    this.caseSensitive = configValueFromParam(
+      caseSensitive,
+      "boolean",
+      "caseSensitive"
+    );
+    this.caseFirst = configValueFromParam(
+      caseFirst,
+      ["upper", "lower", "false"],
+      "caseFirst"
+    );
+    this.ignorePunctuation = configValueFromParam(
+      ignorePunctuation,
+      "boolean",
+      "ignorePunctuation"
+    );
+    this.chooseAddressMappingPolicy =
+      chooseAddressMappingPolicy ??
+      Config.defaultConfig.chooseAddressMappingPolicy;
+    this.dateFormats = [
+      ...configValueFromParamCheck(
+        dateFormats,
+        Array.isArray,
+        "array",
+        "dateFormats"
+      ),
+    ];
+    this.timeFormats = [
+      ...configValueFromParamCheck(
+        timeFormats,
+        Array.isArray,
+        "array",
+        "timeFormats"
+      ),
+    ];
+    this.functionArgSeparator = configValueFromParam(
+      functionArgSeparator,
+      "string",
+      "functionArgSeparator"
+    );
+    this.decimalSeparator = configValueFromParam(
+      decimalSeparator,
+      [".", ","],
+      "decimalSeparator"
+    );
+    this.language = configValueFromParam(language, "string", "language");
+    this.ignoreWhiteSpace = configValueFromParam(
+      ignoreWhiteSpace,
+      ["standard", "any"],
+      "ignoreWhiteSpace"
+    );
+    this.licenseKey = configValueFromParam(licenseKey, "string", "licenseKey");
+    this.thousandSeparator = configValueFromParam(
+      thousandSeparator,
+      ["", ",", " ", "."],
+      "thousandSeparator"
+    );
+    this.arrayColumnSeparator = configValueFromParam(
+      arrayColumnSeparator,
+      [",", ";"],
+      "arrayColumnSeparator"
+    );
+    this.arrayRowSeparator = configValueFromParam(
+      arrayRowSeparator,
+      [";", "|"],
+      "arrayRowSeparator"
+    );
+    this.localeLang = configValueFromParam(localeLang, "string", "localeLang");
+    this.functionPlugins = [
+      ...(functionPlugins ?? Config.defaultConfig.functionPlugins),
+    ];
+    this.smartRounding = configValueFromParam(
+      smartRounding,
+      "boolean",
+      "smartRounding"
+    );
+    this.evaluateNullToZero = configValueFromParam(
+      evaluateNullToZero,
+      "boolean",
+      "evaluateNullToZero"
+    );
+    this.sampleSize = configValueFromParam(sampleSize, "number", "sampleSize");
+    validateNumberToBeAtLeast(this.sampleSize, "sampleSize", 1000);
+
+    this.nullYear = configValueFromParam(nullYear, "number", "nullYear");
+    validateNumberToBeAtLeast(this.nullYear, "nullYear", 0);
+    validateNumberToBeAtMost(this.nullYear, "nullYear", 100);
+
+    this.precisionRounding = configValueFromParam(
+      precisionRounding,
+      "number",
+      "precisionRounding"
+    );
+    validateNumberToBeAtLeast(this.precisionRounding, "precisionRounding", 0);
+
+    this.precisionEpsilon = configValueFromParam(
+      precisionEpsilon,
+      "number",
+      "precisionEpsilon"
+    );
+    validateNumberToBeAtLeast(this.precisionEpsilon, "precisionEpsilon", 0);
+
+    this.useColumnIndex = configValueFromParam(
+      useColumnIndex,
+      "boolean",
+      "useColumnIndex"
+    );
+
+    this.useStats = configValueFromParam(useStats, "boolean", "useStats");
+
+    this.parseDateTime = configValueFromParam(
+      parseDateTime,
+      "function",
+      "parseDateTime"
+    );
+    this.stringifyDateTime = configValueFromParam(
+      stringifyDateTime,
+      "function",
+      "stringifyDateTime"
+    );
+    this.stringifyDuration = configValueFromParam(
+      stringifyDuration,
+      "function",
+      "stringifyDuration"
+    );
+    this.translationPackage = HyperFormula.getLanguage(this.language);
+    this.errorMapping = this.translationPackage.buildErrorMapping();
+    this.nullDate = configValueFromParamCheck(
+      nullDate,
+      instanceOfSimpleDate,
+      "IDate",
+      "nullDate"
+    );
+    this.leapYear1900 = configValueFromParam(
+      leapYear1900,
+      "boolean",
+      "leapYear1900"
+    );
+    this.undoLimit = configValueFromParam(undoLimit, "number", "undoLimit");
+    this.useRegularExpressions = configValueFromParam(
+      useRegularExpressions,
+      "boolean",
+      "useRegularExpressions"
+    );
+    this.useWildcards = configValueFromParam(
+      useWildcards,
+      "boolean",
+      "useWildcards"
+    );
+    this.matchWholeCell = configValueFromParam(
+      matchWholeCell,
+      "boolean",
+      "matchWholeCell"
+    );
+    validateNumberToBeAtLeast(this.undoLimit, "undoLimit", 0);
+    this.maxRows = configValueFromParam(maxRows, "number", "maxRows");
+    validateNumberToBeAtLeast(this.maxRows, "maxRows", 1);
+    this.maxColumns = configValueFromParam(maxColumns, "number", "maxColumns");
+    this.currencySymbol = this.setupCurrencySymbol(currencySymbol);
+    validateNumberToBeAtLeast(this.maxColumns, "maxColumns", 1);
+    this.context = context;
 
     privatePool.set(this, {
-      licenseKeyValidityState: checkLicenseKeyValidity(this.licenseKey)
-    })
+      licenseKeyValidityState: checkLicenseKeyValidity(this.licenseKey),
+    });
 
     configCheckIfParametersNotInConflict(
-      {value: this.decimalSeparator, name: 'decimalSeparator'},
-      {value: this.functionArgSeparator, name: 'functionArgSeparator'},
-      {value: this.thousandSeparator, name: 'thousandSeparator'},
-    )
+      { value: this.decimalSeparator, name: "decimalSeparator" },
+      { value: this.functionArgSeparator, name: "functionArgSeparator" },
+      { value: this.thousandSeparator, name: "thousandSeparator" }
+    );
 
     configCheckIfParametersNotInConflict(
-      {value: this.arrayRowSeparator, name: 'arrayRowSeparator'},
-      {value: this.arrayColumnSeparator, name: 'arrayColumnSeparator'},
-    )
+      { value: this.arrayRowSeparator, name: "arrayRowSeparator" },
+      { value: this.arrayColumnSeparator, name: "arrayColumnSeparator" }
+    );
   }
 
   private setupCurrencySymbol(currencySymbol: string[] | undefined): string[] {
-    const valueAfterCheck = [...configValueFromParamCheck(currencySymbol, Array.isArray, 'array', 'currencySymbol')]
+    const valueAfterCheck = [
+      ...configValueFromParamCheck(
+        currencySymbol,
+        Array.isArray,
+        "array",
+        "currencySymbol"
+      ),
+    ];
 
     valueAfterCheck.forEach((val) => {
-      if (typeof val !== 'string') {
-        throw new ExpectedValueOfTypeError('string[]', 'currencySymbol')
+      if (typeof val !== "string") {
+        throw new ExpectedValueOfTypeError("string[]", "currencySymbol");
       }
 
-      if (val === '') {
-        throw new ConfigValueEmpty('currencySymbol')
+      if (val === "") {
+        throw new ConfigValueEmpty("currencySymbol");
       }
-    })
+    });
 
-    return valueAfterCheck as string[]
+    return valueAfterCheck as string[];
   }
 
   /**
@@ -294,19 +459,23 @@ export class Config implements ConfigParams, ParserConfig {
    * @internal
    */
   public get licenseKeyValidityState(): LicenseKeyValidityState {
-    return (privatePool.get(this) as Config).licenseKeyValidityState
+    return (privatePool.get(this) as Config).licenseKeyValidityState;
   }
 
   public getConfig(): ConfigParams {
-    return getFullConfigFromPartial(this)
+    return getFullConfigFromPartial(this);
   }
 
   public mergeConfig(init: Partial<ConfigParams>): Config {
-    const mergedConfig: ConfigParams = Object.assign({}, this.getConfig(), init)
+    const mergedConfig: ConfigParams = Object.assign(
+      {},
+      this.getConfig(),
+      init
+    );
 
-    Config.warnDeprecatedOptions(init)
+    Config.warnDeprecatedOptions(init);
 
-    return new Config(mergedConfig, false)
+    return new Config(mergedConfig, false);
   }
 
   private static warnDeprecatedOptions(options: Partial<ConfigParams>) {
@@ -315,31 +484,42 @@ export class Config implements ConfigParams, ParserConfig {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private static warnDeprecatedIfUsed(inputValue: any, paramName: string, fromVersion: string, replacementName?: string) {
+  private static warnDeprecatedIfUsed(
+    inputValue: any,
+    paramName: string,
+    fromVersion: string,
+    replacementName?: string
+  ) {
     if (inputValue !== undefined) {
       if (replacementName === undefined) {
-        console.warn(`${paramName} option is deprecated since ${fromVersion}`)
+        console.warn(`${paramName} option is deprecated since ${fromVersion}`);
       } else {
-        console.warn(`${paramName} option is deprecated since ${fromVersion}, please use ${replacementName}`)
+        console.warn(
+          `${paramName} option is deprecated since ${fromVersion}, please use ${replacementName}`
+        );
       }
     }
   }
 }
 
-function getFullConfigFromPartial(partialConfig: Partial<ConfigParams>): ConfigParams {
+function getFullConfigFromPartial(
+  partialConfig: Partial<ConfigParams>
+): ConfigParams {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ret: { [key: string]: any } = {}
+  const ret: { [key: string]: any } = {};
   for (const key in Config.defaultConfig) {
-    const val = partialConfig[key as ConfigParamsList] ?? Config.defaultConfig[key as ConfigParamsList]
+    const val =
+      partialConfig[key as ConfigParamsList] ??
+      Config.defaultConfig[key as ConfigParamsList];
     if (Array.isArray(val)) {
-      ret[key] = [...val]
+      ret[key] = [...val];
     } else {
-      ret[key] = val
+      ret[key] = val;
     }
   }
-  return ret as ConfigParams
+  return ret as ConfigParams;
 }
 
 export function getDefaultConfig(): ConfigParams {
-  return getFullConfigFromPartial({})
+  return getFullConfigFromPartial({});
 }

@@ -18,7 +18,7 @@ import {
 import {ErrorMessage} from '../../error-message'
 import {format} from '../../format/format'
 import {Maybe} from '../../Maybe'
-import {ProcedureAst} from '../../parser'
+import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
 import {
   EmptyValue,

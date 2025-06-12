@@ -5,7 +5,7 @@
 
 import {CellError, ErrorType, SimpleCellAddress} from '../../Cell'
 import {ErrorMessage} from '../../error-message'
-import {ProcedureAst} from '../../parser'
+import {ProcedureAst} from '../../parser/Ast'
 import {FunctionPlugin} from '../index'
 import {InterpreterState} from '../InterpreterState'
 import {InterpreterValue} from '../InterpreterValue'

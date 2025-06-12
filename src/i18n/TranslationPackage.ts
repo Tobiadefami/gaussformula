@@ -5,8 +5,21 @@
 
 import {ErrorType, TranslatableErrorType} from '../Cell'
 import {MissingTranslationError, ProtectedFunctionTranslationError} from '../errors'
+
 import {Maybe} from '../Maybe'
-import {ErrorTranslationSet, TranslationSet, UIElement, UITranslationSet} from './index'
+
+// Define types here instead of importing from index to avoid circular dependency
+export type TranslationSet = Record<string, string>
+export enum UIElement {
+  NEW_SHEET_PREFIX = 'NEW_SHEET_PREFIX'
+}
+export type UITranslationSet = Record<UIElement, string>
+export type ErrorTranslationSet = Record<TranslatableErrorType, string>
+
+// Add runtime dummy objects for types
+export const TranslationSet = { isValid: (obj: any) => typeof obj === 'object' }
+export const UITranslationSet = { isValid: (obj: any) => typeof obj === 'object' }
+export const ErrorTranslationSet = { isValid: (obj: any) => typeof obj === 'object' }
 
 export interface RawTranslationPackage {
   functions: TranslationSet,

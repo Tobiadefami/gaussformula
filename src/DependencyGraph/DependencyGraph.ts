@@ -4,29 +4,6 @@
  */
 
 import {AbsoluteCellRange, SimpleCellRange, simpleCellRange} from '../AbsoluteCellRange'
-import {absolutizeDependencies} from '../absolutizeDependencies'
-import {ArraySize} from '../ArraySize'
-import {CellError, ErrorType, isSimpleCellAddress, simpleCellAddress, SimpleCellAddress} from '../Cell'
-import {RawCellContent} from '../CellContentParser'
-import {CellDependency} from '../CellDependency'
-import {Config} from '../Config'
-import {ContentChanges} from '../ContentChanges'
-import {ErrorMessage} from '../error-message'
-import {FunctionRegistry} from '../interpreter/FunctionRegistry'
-import {
-  EmptyValue,
-  getRawValue,
-  InternalScalarValue,
-  InterpreterValue,
-  RawScalarValue
-} from '../interpreter/InterpreterValue'
-import {SimpleRangeValue} from '../SimpleRangeValue'
-import {LazilyTransformingAstService} from '../LazilyTransformingAstService'
-import {Maybe} from '../Maybe'
-import {NamedExpressions} from '../NamedExpressions'
-import {Ast, collectDependencies, NamedExpressionDependency} from '../parser'
-import {ColumnsSpan, RowsSpan, Span} from '../Span'
-import {Statistics, StatType} from '../statistics'
 import {
   ArrayVertex,
   CellVertex,
@@ -37,15 +14,39 @@ import {
   ValueCellVertex,
   Vertex,
 } from './'
+import {Ast, NamedExpressionDependency, collectDependencies} from '../parser'
+import {CellError, ErrorType, SimpleCellAddress, isSimpleCellAddress, simpleCellAddress} from '../Cell'
+import {ColumnsSpan, RowsSpan, Span} from '../Span'
+import {DependencyQuery, Graph} from './Graph'
+import {
+  EmptyValue,
+  InternalScalarValue,
+  InterpreterValue,
+  RawScalarValue,
+  getRawValue
+} from '../interpreter/InterpreterValue'
+import {StatType, Statistics} from '../statistics'
+
 import {AddressMapping} from './AddressMapping/AddressMapping'
 import {ArrayMapping} from './ArrayMapping'
-import {collectAddressesDependentToRange} from './collectAddressesDependentToRange'
+import {ArraySize} from '../ArraySize'
+import {CellDependency} from '../CellDependency'
+import {Config} from '../Config'
+import {ContentChanges} from '../ContentChanges'
+import {ErrorMessage} from '../error-message'
 import {FormulaVertex} from './FormulaCellVertex'
-import {DependencyQuery, Graph} from './Graph'
+import {FunctionRegistry} from '../interpreter/FunctionRegistry'
+import {LazilyTransformingAstService} from '../LazilyTransformingAstService'
+import {Maybe} from '../Maybe'
+import {NamedExpressions} from '../NamedExpressions'
 import {RangeMapping} from './RangeMapping'
-import {SheetMapping} from './SheetMapping'
 import {RawAndParsedValue} from './ValueCellVertex'
+import {RawCellContent} from '../CellContentParser'
+import {SheetMapping} from './SheetMapping'
+import {SimpleRangeValue} from '../SimpleRangeValue'
 import {TopSortResult} from './TopSort'
+import {absolutizeDependencies} from '../absolutizeDependencies'
+import {collectAddressesDependentToRange} from './collectAddressesDependentToRange'
 
 export class DependencyGraph {
   public readonly graph: Graph<Vertex>

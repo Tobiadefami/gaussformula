@@ -6,7 +6,7 @@
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 import {InterpreterState} from '../InterpreterState'
 import {InterpreterValue} from '../InterpreterValue'
-import {ProcedureAst} from '../../parser'
+import {ProcedureAst} from '../../parser/Ast'
 
 export class HyperlinkPlugin extends FunctionPlugin implements FunctionPluginTypecheck<HyperlinkPlugin> {
   public static implementedFunctions: ImplementedFunctions = {

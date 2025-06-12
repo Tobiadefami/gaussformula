@@ -3,7 +3,7 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {ProcedureAst} from '../../parser'
+import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
 import {EmptyValue, InterpreterValue, RawScalarValue} from '../InterpreterValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'

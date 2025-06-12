@@ -5,19 +5,20 @@
 
 import {
   CellRange,
-  equalSimpleCellAddress,
-  isSimpleCellAddress,
-  simpleCellAddress,
   SimpleCellAddress,
   SimpleColumnAddress,
-  SimpleRowAddress
+  SimpleRowAddress,
+  equalSimpleCellAddress,
+  isSimpleCellAddress,
+  simpleCellAddress
 } from './Cell'
-import {DependencyGraph} from './DependencyGraph'
-import {SheetsNotEqual} from './errors'
-import {Maybe} from './Maybe'
-import {AstNodeType, CellRangeAst} from './parser'
-import {ColumnRangeAst, RowRangeAst} from './parser/Ast'
+import {CellRangeAst, ColumnRangeAst, RowRangeAst} from './parser/Ast'
 import {RowsSpan, Span} from './Span'
+
+import {AstNodeType} from './parser'
+import {DependencyGraph} from './DependencyGraph'
+import {Maybe} from './Maybe'
+import {SheetsNotEqual} from './errors'
 
 export const WRONG_RANGE_SIZE = 'AbsoluteCellRange: Wrong range size'
 

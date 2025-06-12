@@ -4,22 +4,6 @@
  */
 
 import {AbsoluteCellRange, AbsoluteColumnRange, AbsoluteRowRange} from '../AbsoluteCellRange'
-import {ArraySizePredictor} from '../ArraySize'
-import {ArrayValue, NotComputedArray} from '../ArrayValue'
-import {CellError, ErrorType, invalidSimpleCellAddress} from '../Cell'
-import {Config} from '../Config'
-import {DateTimeHelper} from '../DateTimeHelper'
-import {DependencyGraph} from '../DependencyGraph'
-import {FormulaVertex} from '../DependencyGraph/FormulaCellVertex'
-import {ErrorMessage} from '../error-message'
-import {LicenseKeyValidityState} from '../helpers/licenseKeyValidator'
-import {ColumnSearchStrategy} from '../Lookup/SearchStrategy'
-import {Maybe} from '../Maybe'
-import {NamedExpressions} from '../NamedExpressions'
-// noinspection TypeScriptPreferShortImport
-import {Ast, AstNodeType, CellRangeAst, ColumnRangeAst, RowRangeAst} from '../parser/Ast'
-import {Serialization} from '../Serialization'
-import {Statistics} from '../statistics/Statistics'
 import {
   ArithmeticHelper,
   coerceRangeToScalar,
@@ -28,18 +12,35 @@ import {
   fixNegativeZero,
   isNumberOverflow
 } from './ArithmeticHelper'
-import {CriterionBuilder} from './Criterion'
-import {FunctionRegistry} from './FunctionRegistry'
-import {InterpreterState} from './InterpreterState'
+import {ArrayValue, NotComputedArray} from '../ArrayValue'
+// noinspection TypeScriptPreferShortImport
+import {Ast, AstNodeType, CellRangeAst, ColumnRangeAst, RowRangeAst} from '../parser/Ast'
+import {CellError, ErrorType, invalidSimpleCellAddress} from '../Cell'
 import {
-  cloneNumber,
   EmptyValue,
-  getRawValue,
   InternalScalarValue,
   InterpreterValue,
+  cloneNumber,
+  getRawValue,
   isExtendedNumber,
 } from './InterpreterValue'
+
+import {ArraySizePredictor} from '../ArraySize'
+import {ColumnSearchStrategy} from '../Lookup/SearchStrategy'
+import {Config} from '../Config'
+import {CriterionBuilder} from './Criterion'
+import {DateTimeHelper} from '../DateTimeHelper'
+import {DependencyGraph} from '../DependencyGraph'
+import {ErrorMessage} from '../error-message'
+import {FormulaVertex} from '../DependencyGraph/FormulaCellVertex'
+import {FunctionRegistry} from './FunctionRegistry'
+import {InterpreterState} from './InterpreterState'
+import {LicenseKeyValidityState} from '../helpers/licenseKeyValidator'
+import {Maybe} from '../Maybe'
+import {NamedExpressions} from '../NamedExpressions'
+import {Serialization} from '../Serialization'
 import {SimpleRangeValue} from '../SimpleRangeValue'
+import {Statistics} from '../statistics/Statistics'
 
 export class Interpreter {
   public readonly criterionBuilder: CriterionBuilder
@@ -95,6 +96,9 @@ export class Interpreter {
       }
       case AstNodeType.NUMBER:
       case AstNodeType.STRING: {
+        return ast.value
+      }
+      case AstNodeType.GAUSSIAN_NUMBER: {
         return ast.value
       }
       case AstNodeType.CONCATENATE_OP: {

@@ -5,7 +5,7 @@
 
 import {LicenseKeyValidityState} from '../../helpers/licenseKeyValidator'
 import {HyperFormula} from '../../HyperFormula'
-import {ProcedureAst} from '../../parser'
+import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
 import {InterpreterValue} from '../InterpreterValue'
 import {FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
