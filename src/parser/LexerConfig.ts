@@ -104,7 +104,7 @@ export const GaussianLiteral = createToken({
 });
 export const ConfidenceIntervalLiteral = createToken({
   name: "ConfidenceIntervalLiteral",
-  pattern: /P(\d+)\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]/,
+  pattern: /CI\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]/,
 });
 
 export const RangeSeparator = createToken({
