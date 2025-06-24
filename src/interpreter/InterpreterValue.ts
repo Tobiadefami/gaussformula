@@ -86,6 +86,65 @@ export class PercentNumber extends RichNumber {
   }
 }
 
+export class ConfidenceIntervalNumber extends RichNumber {
+  public readonly lower: number;
+  public readonly upper: number;
+  public readonly confidenceLevel: number;
+
+  constructor(
+    lower: number,
+    upper: number,
+    confidenceLevel: number = 95,
+    format?: string
+  ) {
+    // Calculate the mean as the center of the confidence interval
+    const mean = (lower + upper) / 2;
+    super(mean, format);
+    this.lower = lower;
+    this.upper = upper;
+    this.confidenceLevel = confidenceLevel;
+  }
+
+  public getLower(): number {
+    return this.lower;
+  }
+
+  public getUpper(): number {
+    return this.upper;
+  }
+
+  public getConfidenceLevel(): number {
+    return this.confidenceLevel;
+  }
+
+  public getDetailedType(): NumberType {
+    return NumberType.NUMBER_CONFIDENCE_INTERVAL;
+  }
+
+  public fromNumber(val: number): this {
+    // When creating a new confidence interval from a number,
+    // we need to maintain the same width and confidence level
+    const width = this.upper - this.lower;
+    const newLower = val - width / 2;
+    const newUpper = val + width / 2;
+    return new ConfidenceIntervalNumber(
+      newLower,
+      newUpper,
+      this.confidenceLevel,
+      this.format
+    ) as this;
+  }
+
+  public toGaussian(): GaussianNumber {
+    const { mean, variance } = confidenceIntervalToGaussian(
+      this.lower,
+      this.upper,
+      this.confidenceLevel
+    );
+    return new GaussianNumber(mean, variance);
+  }
+}
+
 export type ExtendedNumber = number | RichNumber;
 
 export function isExtendedNumber(val: any): val is ExtendedNumber {
@@ -101,6 +160,7 @@ export enum NumberType {
   NUMBER_PERCENT = "NUMBER_PERCENT",
   NUMBER_GAUSSIAN = "NUMBER_GAUSSIAN",
   NUMBER_SAMPLED = "NUMBER_SAMPLED",
+  NUMBER_CONFIDENCE_INTERVAL = "NUMBER_CONFIDENCE_INTERVAL",
 }
 
 export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
@@ -116,6 +176,8 @@ export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
     return NumberType.NUMBER_DATETIME;
   } else if (value instanceof GaussianNumber) {
     return NumberType.NUMBER_GAUSSIAN;
+  } else if (value instanceof ConfidenceIntervalNumber) {
+    return NumberType.NUMBER_CONFIDENCE_INTERVAL;
   } else {
     return NumberType.NUMBER_RAW;
   }
@@ -258,7 +320,13 @@ export class GaussianNumber extends RichNumber {
     }
     return this.samples!;
   }
+  public getMean(): number {
+    return this.mean;
+  }
 
+  public getVariance(): number {
+    return this.variance;
+  }
   public getDetailedType(): NumberType {
     return NumberType.NUMBER_GAUSSIAN;
   }

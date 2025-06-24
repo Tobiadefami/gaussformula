@@ -5,6 +5,7 @@
 
 import { CellError, ErrorType } from "./Cell";
 import {
+  ConfidenceIntervalNumber,
   CurrencyNumber,
   DateNumber,
   DateTimeNumber,
@@ -180,13 +181,8 @@ export class CellContentParser {
         const lower = Number(confidenceIntervalMatch[1]);
         const upper = Number(confidenceIntervalMatch[2]);
         if (!isNaN(lower) && !isNaN(upper) && lower <= upper) {
-          const { mean, variance } = confidenceIntervalToGaussian(
-            lower,
-            upper,
-            95
-          );
           return new CellContent.Number(
-            new GaussianNumber(mean, variance, this.config)
+            new ConfidenceIntervalNumber(lower, upper, 95)
           );
         }
       }

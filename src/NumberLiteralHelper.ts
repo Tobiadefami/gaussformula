@@ -4,6 +4,7 @@
  */
 
 import {
+  ConfidenceIntervalNumber,
   GaussianNumber,
   SampledDistribution,
   confidenceIntervalToGaussian,
@@ -40,7 +41,9 @@ export class NumberLiteralHelper {
 
   public numericStringToMaybeNumber(
     input: string
-  ): Maybe<number | GaussianNumber | SampledDistribution> {
+  ): Maybe<
+    number | GaussianNumber | SampledDistribution | ConfidenceIntervalNumber
+  > {
     const gaussianMatch = this.gaussianPattern.exec(input);
     if (gaussianMatch) {
       const mean = Number(gaussianMatch[1]);
@@ -68,12 +71,7 @@ export class NumberLiteralHelper {
       const lower = Number(confidenceIntervalMatch[1]);
       const upper = Number(confidenceIntervalMatch[2]);
       if (!isNaN(lower) && !isNaN(upper) && lower <= upper) {
-        const { mean, variance } = confidenceIntervalToGaussian(
-          lower,
-          upper,
-          0.95
-        );
-        return new GaussianNumber(mean, variance, this.config);
+        return new ConfidenceIntervalNumber(lower, upper, 95);
       }
     }
 
