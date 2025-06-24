@@ -5,6 +5,7 @@
 
 import { CellError, ErrorType } from "./Cell";
 import {
+  ConfidenceIntervalNumber,
   CurrencyNumber,
   DateNumber,
   DateTimeNumber,
@@ -171,28 +172,17 @@ export class CellContentParser {
         }
       }
 
-      // Try to parse as confidence interval P{confidence}[lower, upper]
+      // Try to parse as confidence interval CI[lower, upper]
       const confidenceIntervalMatch =
-        /^P(\d+)\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]$/.exec(
+        /^CI\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]$/.exec(
           content
         );
       if (confidenceIntervalMatch) {
-        const confidenceLevel = Number(confidenceIntervalMatch[1]);
-        const lower = Number(confidenceIntervalMatch[2]);
-        const upper = Number(confidenceIntervalMatch[3]);
-        if (
-          !isNaN(confidenceLevel) &&
-          !isNaN(lower) &&
-          !isNaN(upper) &&
-          lower <= upper
-        ) {
-          const { mean, variance } = confidenceIntervalToGaussian(
-            lower,
-            upper,
-            confidenceLevel
-          );
+        const lower = Number(confidenceIntervalMatch[1]);
+        const upper = Number(confidenceIntervalMatch[2]);
+        if (!isNaN(lower) && !isNaN(upper) && lower <= upper) {
           return new CellContent.Number(
-            new GaussianNumber(mean, variance, this.config)
+            new ConfidenceIntervalNumber(lower, upper, 95)
           );
         }
       }

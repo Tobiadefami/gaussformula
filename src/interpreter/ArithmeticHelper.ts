@@ -10,6 +10,7 @@ import {
   getCellValueType,
 } from "../Cell";
 import {
+  ConfidenceIntervalNumber,
   CurrencyNumber,
   DateNumber,
   DateTimeNumber,
@@ -287,7 +288,9 @@ export class ArithmeticHelper {
       left instanceof GaussianNumber ||
       right instanceof GaussianNumber ||
       left instanceof SampledDistribution ||
-      right instanceof SampledDistribution
+      right instanceof SampledDistribution ||
+      left instanceof ConfidenceIntervalNumber ||
+      right instanceof ConfidenceIntervalNumber
     ) {
       return this.addDistributions(left, right);
     }
@@ -312,6 +315,13 @@ export class ArithmeticHelper {
     left: ExtendedNumber,
     right: ExtendedNumber
   ): ExtendedNumber {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for arithmetic
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
     if (
       (left instanceof GaussianNumber || left instanceof SampledDistribution) &&
       (right instanceof GaussianNumber || right instanceof SampledDistribution)
