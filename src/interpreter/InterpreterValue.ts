@@ -161,6 +161,8 @@ export enum NumberType {
   NUMBER_GAUSSIAN = "NUMBER_GAUSSIAN",
   NUMBER_SAMPLED = "NUMBER_SAMPLED",
   NUMBER_CONFIDENCE_INTERVAL = "NUMBER_CONFIDENCE_INTERVAL",
+  NUMBER_LOGNORMAL = "NUMBER_LOGNORMAL",
+  NUMBER_UNIFORM = "NUMBER_UNIFORM",
 }
 
 export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
@@ -218,6 +220,27 @@ export function generateNormalSamples(
     return mean + std * z0;
   });
 }
+
+export function generateLogNormalSamples(
+  mean: number,
+  variance: number,
+  sampleSize: number
+): number[] {
+  const std = Math.sqrt(variance);
+  return Array.from({ length: sampleSize }, () => {
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    return Math.exp(mean + std * z0);
+  });
+}
+
+export function generateUniformSamples(min:number, max:number, sampleSize:number): number[] {
+  return Array.from({ length: sampleSize }, () => {
+    return Math.random() * (max - min) + min;
+  });
+}
+
 
 export function confidenceIntervalToGaussian(
   lower: number,
@@ -352,4 +375,90 @@ export class GaussianNumber extends RichNumber {
 
     return false;
   }
+}
+
+
+export class LogNormalNumber extends RichNumber {
+
+    private samples: number[] | null = null; 
+    
+    constructor(
+        public readonly mean: number,
+        public readonly variance: number,
+        private readonly config?: Config
+    ) {
+        super(mean);
+        this.generateSamples();
+    }
+
+    private generateSamples() {
+        this.samples = generateLogNormalSamples(
+            this.mean,
+            this.variance,
+            this.config?.sampleSize ?? Config.defaultConfig.sampleSize
+        );
+    }
+
+
+    public getSamples(): number[] {
+        if (!this.samples) {
+            this.generateSamples();
+        }
+        return this.samples!;
+    }
+
+    public getMean(): number {
+        return this.mean;
+    }
+
+    public getVariance(): number {
+        return this.variance;
+    }
+
+    public getDetailedType(): NumberType {
+        return NumberType.NUMBER_LOGNORMAL;
+    }
+
+    public fromNumber(val: number): this {
+        return new LogNormalNumber(val, this.variance, this.config) as this;
+    }
+
+}
+
+export class UniformNumber extends RichNumber {
+
+    private samples: number[] | null = null; 
+    
+    constructor(
+        public readonly min: number,
+        public readonly max: number,
+        private readonly config?: Config
+    ) {
+        super((min + max) / 2); //mean
+        this.generateSamples();
+    }
+
+    private generateSamples() {
+        this.samples = generateUniformSamples(
+            this.min,
+            this.max,
+            this.config?.sampleSize ?? Config.defaultConfig.sampleSize
+        );
+    }
+    
+
+    public getSamples(): number[] {
+        if (!this.samples) {
+            this.generateSamples();
+        }
+        return this.samples!;
+    }
+
+    public getDetailedType(): NumberType {
+        return NumberType.NUMBER_UNIFORM;
+    }
+
+    public fromNumber(val: number): this {
+        return new UniformNumber(val, this.max, this.config) as this;
+    }
 }

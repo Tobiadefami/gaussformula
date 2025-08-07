@@ -20,6 +20,7 @@ import {
   InternalNoErrorScalarValue,
   InternalScalarValue,
   InterpreterValue,
+  LogNormalNumber,
   NumberType,
   NumberTypeWithFormat,
   PercentNumber,
@@ -28,6 +29,7 @@ import {
   RawScalarValue,
   SampledDistribution,
   TimeNumber,
+  UniformNumber,
   cloneNumber,
   getRawValue,
   getTypeFormatOfExtendedNumber,
@@ -246,29 +248,38 @@ export class ArithmeticHelper {
 
   public pow = (left: ExtendedNumber, right: ExtendedNumber) => {
     if (left instanceof GaussianNumber || right instanceof GaussianNumber) {
-      return this.powGaussians(left, right);
+      return this.powDistributions(left, right);
     }
     return Math.pow(getRawValue(left), getRawValue(right));
   };
 
-  private powGaussians(
+  private powDistributions(
     left: ExtendedNumber,
     right: ExtendedNumber
-  ): GaussianNumber {
-    const leftMean =
-      left instanceof GaussianNumber ? left.mean : getRawValue(left);
-    const rightMean =
-      right instanceof GaussianNumber ? right.mean : getRawValue(right);
-    const leftVariance = left instanceof GaussianNumber ? left.variance : 0;
-    const rightVariance = right instanceof GaussianNumber ? right.variance : 0;
+  ): ExtendedNumber {
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
 
-    // For x^y where x is Gaussian, we propagate the uncertainty
-    // This is an approximation - in reality, the uncertainty would be more complex
-    const mean = Math.pow(leftMean, rightMean);
-    const variance =
-      Math.abs(rightMean * Math.pow(leftMean, rightMean - 1)) * leftVariance;
-
-    return new GaussianNumber(mean, variance);
+    if ((left instanceof GaussianNumber || left instanceof SampledDistribution) && (right instanceof GaussianNumber || right instanceof SampledDistribution)) {
+      const leftSamples = left.getSamples();
+      const rightSamples = right.getSamples();
+      const resultSamples = leftSamples.map((val, i) => Math.pow(val, rightSamples[i]));
+      return new SampledDistribution(resultSamples);
+    } else if (left instanceof GaussianNumber || left instanceof SampledDistribution) {
+      const rightValue = getRawValue(right);
+      const leftSamples = left.getSamples();
+      const resultSamples = leftSamples.map((val) => Math.pow(val, rightValue));
+      return new SampledDistribution(resultSamples);
+    } else {
+      const leftValue = getRawValue(left);
+      const rightSamples = (right as GaussianNumber).getSamples();
+      const resultSamples = rightSamples.map((val) => Math.pow(leftValue, val));
+      return new SampledDistribution(resultSamples);
+    }
   }
 
   public addWithEpsilonRaw = (left: number, right: number): number => {
@@ -425,7 +436,9 @@ export class ArithmeticHelper {
       leftArg instanceof GaussianNumber ||
       rightArg instanceof GaussianNumber ||
       leftArg instanceof SampledDistribution ||
-      rightArg instanceof SampledDistribution
+      rightArg instanceof SampledDistribution ||
+      leftArg instanceof ConfidenceIntervalNumber ||
+      rightArg instanceof ConfidenceIntervalNumber
     ) {
       return this.subtractDistributions(leftArg, rightArg);
     }
@@ -443,6 +456,13 @@ export class ArithmeticHelper {
     left: ExtendedNumber,
     right: ExtendedNumber
   ): ExtendedNumber {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for arithmetic
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
     if (
       (left instanceof GaussianNumber || left instanceof SampledDistribution) &&
       (right instanceof GaussianNumber || right instanceof SampledDistribution)
@@ -490,7 +510,9 @@ export class ArithmeticHelper {
       left instanceof GaussianNumber ||
       right instanceof GaussianNumber ||
       left instanceof SampledDistribution ||
-      right instanceof SampledDistribution
+      right instanceof SampledDistribution ||
+      left instanceof ConfidenceIntervalNumber ||
+      right instanceof ConfidenceIntervalNumber
     ) {
       return this.multiplyDistributions(left, right);
     }
@@ -505,6 +527,13 @@ export class ArithmeticHelper {
     left: ExtendedNumber,
     right: ExtendedNumber
   ): ExtendedNumber {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for arithmetic
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
     if (
       (left instanceof GaussianNumber || left instanceof SampledDistribution) &&
       (right instanceof GaussianNumber || right instanceof SampledDistribution)
@@ -554,7 +583,9 @@ export class ArithmeticHelper {
       left instanceof GaussianNumber ||
       right instanceof GaussianNumber ||
       left instanceof SampledDistribution ||
-      right instanceof SampledDistribution
+      right instanceof SampledDistribution ||
+      left instanceof ConfidenceIntervalNumber ||
+      right instanceof ConfidenceIntervalNumber
     ) {
       return this.divideDistributions(left, right);
     }
@@ -574,6 +605,13 @@ export class ArithmeticHelper {
     left: ExtendedNumber,
     right: ExtendedNumber
   ): ExtendedNumber | CellError {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for arithmetic
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
     if (
       (left instanceof GaussianNumber || left instanceof SampledDistribution) &&
       (right instanceof GaussianNumber || right instanceof SampledDistribution)
