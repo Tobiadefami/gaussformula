@@ -3,7 +3,7 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {ExtendedNumber, GaussianNumber} from '../interpreter/InterpreterValue'
+import {ExtendedNumber, GaussianNumber, LogNormalNumber, UniformNumber} from '../interpreter/InterpreterValue'
 
 import {AddressWithSheet} from './Address'
 import {CellAddress} from './CellAddress'
@@ -43,6 +43,8 @@ export type Ast =
   | EmptyArgAst
   | ArrayAst
   | GaussianNumberAst
+  | LogNormalNumberAst
+  | UniformNumberAst
 
 export interface ParsingError {
   type: ParsingErrorType,
@@ -70,6 +72,8 @@ export enum AstNodeType {
 
   NUMBER = 'NUMBER',
   GAUSSIAN_NUMBER = 'GAUSSIAN_NUMBER',
+  LOG_NORMAL_NUMBER = 'LOG_NORMAL_NUMBER',
+  UNIFORM_NUMBER = 'UNIFORM_NUMBER',
   STRING = 'STRING',
 
   MINUS_UNARY_OP = 'MINUS_UNARY_OP',
@@ -155,6 +159,30 @@ export interface GaussianNumberAst extends AstWithWhitespace {
 export const buildGaussianNumberAst = (value: GaussianNumber, leadingWhitespace?: IToken): GaussianNumberAst => ({
   type: AstNodeType.GAUSSIAN_NUMBER,
   value: value,
+  leadingWhitespace: leadingWhitespace?.image,
+})
+
+export interface LogNormalNumberAst extends AstWithWhitespace {
+  type: AstNodeType.LOG_NORMAL_NUMBER,
+  value: LogNormalNumber,
+}
+
+
+export const buildLogNormalNumberAst = (value: LogNormalNumber, leadingWhitespace?: IToken): LogNormalNumberAst => ({
+  type: AstNodeType.LOG_NORMAL_NUMBER,
+  value,
+  leadingWhitespace: leadingWhitespace?.image,
+})
+
+export interface UniformNumberAst extends AstWithWhitespace {
+  type: AstNodeType.UNIFORM_NUMBER,
+  value: UniformNumber,
+}
+
+
+export const buildUniformNumberAst = (value: UniformNumber, leadingWhitespace?: IToken): UniformNumberAst => ({
+  type: AstNodeType.UNIFORM_NUMBER,
+  value,
   leadingWhitespace: leadingWhitespace?.image,
 })
 

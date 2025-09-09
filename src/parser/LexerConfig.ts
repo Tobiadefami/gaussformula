@@ -102,6 +102,14 @@ export const GaussianLiteral = createToken({
   name: "GaussianLiteral",
   pattern: /N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/,
 });
+export const LogNormalLiteral = createToken({
+  name: "LogNormalLiteral",
+  pattern: /LN\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/,
+});
+export const UniformLiteral = createToken({
+  name: "UniformLiteral",
+  pattern: /U\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/,
+});
 export const ConfidenceIntervalLiteral = createToken({
   name: "ConfidenceIntervalLiteral",
   pattern: /CI\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]/,
@@ -161,6 +169,8 @@ export interface LexerConfig {
   maxColumns: number;
   maxRows: number;
   GaussianLiteral: TokenType;
+  LogNormalLiteral: TokenType;
+  UniformLiteral: TokenType;
   ConfidenceIntervalLiteral: TokenType;
 }
 
@@ -244,6 +254,8 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     RowRange,
     ConfidenceIntervalLiteral,
     GaussianLiteral,
+    LogNormalLiteral,
+    UniformLiteral,
     NumberLiteral,
     StringLiteral,
     ErrorLiteral,
@@ -272,5 +284,7 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     maxRows: config.maxRows,
     GaussianLiteral,
     ConfidenceIntervalLiteral,
+    LogNormalLiteral,
+    UniformLiteral,
   };
 };

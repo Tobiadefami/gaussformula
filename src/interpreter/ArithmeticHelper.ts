@@ -27,6 +27,8 @@ import {
   RawNoErrorScalarValue,
   RawScalarValue,
   SampledDistribution,
+  LogNormalNumber,
+  UniformNumber,
   TimeNumber,
   cloneNumber,
   getRawValue,
@@ -185,6 +187,8 @@ export class ArithmeticHelper {
       }
     }
     return false;
+
+
   }
 
   public lt = (
@@ -245,16 +249,53 @@ export class ArithmeticHelper {
   }
 
   public pow = (left: ExtendedNumber, right: ExtendedNumber) => {
-    if (left instanceof GaussianNumber || right instanceof GaussianNumber) {
-      return this.powGaussians(left, right);
+    if (
+      left instanceof GaussianNumber || 
+      right instanceof GaussianNumber ||
+      left instanceof ConfidenceIntervalNumber ||
+      right instanceof ConfidenceIntervalNumber ||
+      left instanceof LogNormalNumber ||
+      right instanceof LogNormalNumber ||
+      left instanceof UniformNumber ||
+      right instanceof UniformNumber
+    ) {
+      return this.powDistributions(left, right);
     }
     return Math.pow(getRawValue(left), getRawValue(right));
   };
 
-  private powGaussians(
+  private powDistributions(
     left: ExtendedNumber,
     right: ExtendedNumber
-  ): GaussianNumber {
+  ): ExtendedNumber {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for arithmetic
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
+
+    // Handle log-normal distributions
+    if (left instanceof LogNormalNumber) {
+      if (this.preservesLogNormal('pow', left, right)) {
+        // Power of log-normal preserves family: X^k where k is scalar
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => Math.pow(a, b));
+        const { mu, sigma2 } = this.fitLogNormal(resultSamples);
+        return new LogNormalNumber(mu, sigma2, this.config);
+      } else {
+        // Fall back to sampled distribution
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => Math.pow(a, b));
+        return new SampledDistribution(resultSamples, this.config);
+      }
+    }
+
+    // Handle uniform distributions - power doesn't preserve uniformity
+    if (left instanceof UniformNumber || right instanceof UniformNumber) {
+      const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => Math.pow(a, b));
+      return new SampledDistribution(resultSamples, this.config);
+    }
+    
     const leftMean =
       left instanceof GaussianNumber ? left.mean : getRawValue(left);
     const rightMean =
@@ -289,6 +330,10 @@ export class ArithmeticHelper {
       right instanceof GaussianNumber ||
       left instanceof SampledDistribution ||
       right instanceof SampledDistribution ||
+      left instanceof LogNormalNumber ||
+      right instanceof LogNormalNumber ||
+      left instanceof UniformNumber ||
+      right instanceof UniformNumber ||
       left instanceof ConfidenceIntervalNumber ||
       right instanceof ConfidenceIntervalNumber
     ) {
@@ -311,6 +356,144 @@ export class ArithmeticHelper {
     return { mean, variance };
   }
 
+  /**
+   * ========================================================================
+   * Distribution Arithmetic Helper Functions for Sampling-Driven Operations
+   * ========================================================================
+   */
+
+  /**
+   * Performs element-wise binary operations on sample arrays, handling scalar broadcasting.
+   * Returns the resulting sample array for Monte-Carlo propagation.
+   */
+  private elementwiseBinaryOp(
+    left: ExtendedNumber,
+    right: ExtendedNumber,
+    op: (a: number, b: number) => number | null
+  ): number[] {
+    const leftSamples = this.getSamplesFromValue(left);
+    const rightSamples = this.getSamplesFromValue(right);
+    
+    // Ensure both arrays have the same length
+    const maxLength = Math.max(leftSamples.length, rightSamples.length);
+    const resultSamples: number[] = [];
+    
+    for (let i = 0; i < maxLength; i++) {
+      const leftVal = leftSamples[i % leftSamples.length];
+      const rightVal = rightSamples[i % rightSamples.length];
+      const result = op(leftVal, rightVal);
+      if (result !== null) {
+        resultSamples.push(result);
+      }
+    }
+    
+    return resultSamples;
+  }
+
+  /**
+   * Fits log-normal distribution parameters from result samples.
+   * Returns { mu, sigma2 } where mu = mean(log samples), sigma2 = var(log samples)
+   */
+  private fitLogNormal(resultSamples: number[]): { mu: number; sigma2: number } {
+    // Filter out non-positive values as they can't be log-transformed
+    const positiveSamples = resultSamples.filter(x => x > 0);
+    
+    if (positiveSamples.length === 0) {
+      // Fallback for edge cases
+      return { mu: 0, sigma2: 1 };
+    }
+    
+    const logSamples = positiveSamples.map(x => Math.log(x));
+    const mu = logSamples.reduce((a, b) => a + b, 0) / logSamples.length;
+    const sigma2 = logSamples.reduce((a, b) => a + Math.pow(b - mu, 2), 0) / logSamples.length;
+    
+    return { mu, sigma2 };
+  }
+
+  /**
+   * Fits uniform distribution parameters from result samples.
+   * Returns { a, b } where a = min(samples), b = max(samples)
+   */
+  private fitUniform(resultSamples: number[]): { a: number; b: number } {
+    if (resultSamples.length === 0) {
+      return { a: 0, b: 1 };
+    }
+    
+    const a = Math.min(...resultSamples);
+    const b = Math.max(...resultSamples);
+    
+    // Ensure b > a for valid uniform distribution
+    if (b <= a) {
+      return { a: a - 0.5, b: a + 0.5 };
+    }
+    
+    return { a, b };
+  }
+
+  /**
+   * Helper to extract samples from any extended number type
+   */
+  private getSamplesFromValue(value: ExtendedNumber): number[] {
+    if (value instanceof GaussianNumber || 
+        value instanceof SampledDistribution ||
+        value instanceof LogNormalNumber ||
+        value instanceof UniformNumber) {
+      return value.getSamples();
+    } else {
+      // For scalar values, create an array with the same sample size
+      const sampleSize = this.config.sampleSize || 10000;
+      const scalarValue = getRawValue(value);
+      return Array(sampleSize).fill(scalarValue);
+    }
+  }
+
+  /**
+   * Determines if an operation preserves the log-normal family
+   */
+  private preservesLogNormal(op: string, left: ExtendedNumber, right: ExtendedNumber): boolean {
+    // Based on DISTRIBUTION_ARITHMETIC_LOGIC.json
+    if (op === '*' || op === '/') {
+      // Both operands should be log-normal, or one should be a positive scalar
+      if (left instanceof LogNormalNumber && right instanceof LogNormalNumber) {
+        return true;
+      }
+      if (left instanceof LogNormalNumber && typeof right === 'number' && right > 0) {
+        return true;
+      }
+      if (right instanceof LogNormalNumber && typeof left === 'number' && left > 0) {
+        return true;
+      }
+    }
+    if (op === 'pow') {
+      // X^k where X is log-normal and k is scalar
+      return left instanceof LogNormalNumber && typeof right === 'number';
+    }
+    if (op === 'scale') {
+      // c * X where c is positive scalar and X is log-normal
+      return (left instanceof LogNormalNumber && typeof right === 'number' && right > 0) ||
+             (right instanceof LogNormalNumber && typeof left === 'number' && left > 0);
+    }
+    return false;
+  }
+
+  /**
+   * Determines if an operation preserves the uniform family
+   */
+  private preservesUniform(op: string, left: ExtendedNumber, right: ExtendedNumber): boolean {
+    // Based on DISTRIBUTION_ARITHMETIC_LOGIC.json - only affine transforms preserve uniformity
+    if (op === '+' || op === '-') {
+      // U + c or c + U (scalar addition)
+      return (left instanceof UniformNumber && typeof right === 'number') ||
+             (right instanceof UniformNumber && typeof left === 'number');
+    }
+    if (op === '*' || op === '/') {
+      // c * U or U * c (scalar multiplication)
+      return (left instanceof UniformNumber && typeof right === 'number') ||
+             (right instanceof UniformNumber && typeof left === 'number');
+    }
+    return false;
+  }
+
   private addDistributions(
     left: ExtendedNumber,
     right: ExtendedNumber
@@ -322,6 +505,28 @@ export class ArithmeticHelper {
     if (right instanceof ConfidenceIntervalNumber) {
       right = right.toGaussian();
     }
+
+    // Handle log-normal distributions
+    if (left instanceof LogNormalNumber || right instanceof LogNormalNumber) {
+      // Addition doesn't preserve log-normal family - use sampling
+      const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => a + b);
+      return new SampledDistribution(resultSamples, this.config);
+    }
+
+    // Handle uniform distributions
+    if (left instanceof UniformNumber || right instanceof UniformNumber) {
+      if (this.preservesUniform('+', left, right)) {
+        // Affine transform c + U or U + c
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => a + b);
+        const { a, b } = this.fitUniform(resultSamples);
+        return new UniformNumber(a, b, this.config);
+      } else {
+        // Fall back to sampled distribution
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => a + b);
+        return new SampledDistribution(resultSamples, this.config);
+      }
+    }
+
     if (
       (left instanceof GaussianNumber || left instanceof SampledDistribution) &&
       (right instanceof GaussianNumber || right instanceof SampledDistribution)
@@ -371,6 +576,9 @@ export class ArithmeticHelper {
     if (arg instanceof GaussianNumber) {
       return new GaussianNumber(-arg.mean, arg.variance);
     }
+    if (arg instanceof ConfidenceIntervalNumber) {
+      return new GaussianNumber(-arg.val, 0, this.config);
+    }
     return cloneNumber(arg, -getRawValue(arg));
   };
 
@@ -379,6 +587,9 @@ export class ArithmeticHelper {
   public unaryPercent = (arg: ExtendedNumber): ExtendedNumber => {
     if (arg instanceof GaussianNumber) {
       return new GaussianNumber(arg.mean / 100, arg.variance / 10000);
+    }
+    if (arg instanceof ConfidenceIntervalNumber) {
+      return new GaussianNumber(arg.val / 100, 0, this.config);
     }
     return new PercentNumber(getRawValue(arg) / 100);
   };
@@ -425,7 +636,13 @@ export class ArithmeticHelper {
       leftArg instanceof GaussianNumber ||
       rightArg instanceof GaussianNumber ||
       leftArg instanceof SampledDistribution ||
-      rightArg instanceof SampledDistribution
+      rightArg instanceof SampledDistribution ||
+      leftArg instanceof LogNormalNumber ||
+      rightArg instanceof LogNormalNumber ||
+      leftArg instanceof UniformNumber ||
+      rightArg instanceof UniformNumber ||
+      leftArg instanceof ConfidenceIntervalNumber ||
+      rightArg instanceof ConfidenceIntervalNumber
     ) {
       return this.subtractDistributions(leftArg, rightArg);
     }
@@ -443,6 +660,35 @@ export class ArithmeticHelper {
     left: ExtendedNumber,
     right: ExtendedNumber
   ): ExtendedNumber {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for arithmetic
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
+
+    // Handle log-normal distributions
+    if (left instanceof LogNormalNumber || right instanceof LogNormalNumber) {
+      // Subtraction doesn't preserve log-normal family - use sampling
+      const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => a - b);
+      return new SampledDistribution(resultSamples, this.config);
+    }
+
+    // Handle uniform distributions
+    if (left instanceof UniformNumber || right instanceof UniformNumber) {
+      if (this.preservesUniform('-', left, right)) {
+        // Affine transform U - c or c - U
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => a - b);
+        const { a, b } = this.fitUniform(resultSamples);
+        return new UniformNumber(a, b, this.config);
+      } else {
+        // Fall back to sampled distribution
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => a - b);
+        return new SampledDistribution(resultSamples, this.config);
+      }
+    }
+
     if (
       (left instanceof GaussianNumber || left instanceof SampledDistribution) &&
       (right instanceof GaussianNumber || right instanceof SampledDistribution)
@@ -490,7 +736,13 @@ export class ArithmeticHelper {
       left instanceof GaussianNumber ||
       right instanceof GaussianNumber ||
       left instanceof SampledDistribution ||
-      right instanceof SampledDistribution
+      right instanceof SampledDistribution ||
+      left instanceof LogNormalNumber ||
+      right instanceof LogNormalNumber ||
+      left instanceof UniformNumber ||
+      right instanceof UniformNumber ||
+      left instanceof ConfidenceIntervalNumber ||
+      right instanceof ConfidenceIntervalNumber
     ) {
       return this.multiplyDistributions(left, right);
     }
@@ -505,6 +757,46 @@ export class ArithmeticHelper {
     left: ExtendedNumber,
     right: ExtendedNumber
   ): ExtendedNumber {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for arithmetic
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
+
+    // Handle log-normal distributions
+    if (left instanceof LogNormalNumber || right instanceof LogNormalNumber) {
+      if (this.preservesLogNormal('*', left, right)) {
+        // Multiplication preserves log-normal family
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => 
+          this.safeMultiplication(a, b));
+        const { mu, sigma2 } = this.fitLogNormal(resultSamples);
+        return new LogNormalNumber(mu, sigma2, this.config);
+      } else {
+        // Fall back to sampled distribution
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => 
+          this.safeMultiplication(a, b));
+        return new SampledDistribution(resultSamples, this.config);
+      }
+    }
+
+    // Handle uniform distributions
+    if (left instanceof UniformNumber || right instanceof UniformNumber) {
+      if (this.preservesUniform('*', left, right)) {
+        // Scalar multiplication - affine transform
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => 
+          this.safeMultiplication(a, b));
+        const { a, b } = this.fitUniform(resultSamples);
+        return new UniformNumber(a, b, this.config);
+      } else {
+        // Fall back to sampled distribution
+        const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => 
+          this.safeMultiplication(a, b));
+        return new SampledDistribution(resultSamples, this.config);
+      }
+    }
+
     if (
       (left instanceof GaussianNumber || left instanceof SampledDistribution) &&
       (right instanceof GaussianNumber || right instanceof SampledDistribution)
@@ -554,7 +846,13 @@ export class ArithmeticHelper {
       left instanceof GaussianNumber ||
       right instanceof GaussianNumber ||
       left instanceof SampledDistribution ||
-      right instanceof SampledDistribution
+      right instanceof SampledDistribution ||
+      left instanceof LogNormalNumber ||
+      right instanceof LogNormalNumber ||
+      left instanceof UniformNumber ||
+      right instanceof UniformNumber ||
+      left instanceof ConfidenceIntervalNumber ||
+      right instanceof ConfidenceIntervalNumber
     ) {
       return this.divideDistributions(left, right);
     }
@@ -574,6 +872,86 @@ export class ArithmeticHelper {
     left: ExtendedNumber,
     right: ExtendedNumber
   ): ExtendedNumber | CellError {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for arithmetic
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
+
+    // Handle log-normal distributions
+    if (left instanceof LogNormalNumber || right instanceof LogNormalNumber) {
+      if (this.preservesLogNormal('/', left, right)) {
+        // Division preserves log-normal family
+        const resultSamples: number[] = [];
+        const leftSamples = this.getSamplesFromValue(left);
+        const rightSamples = this.getSamplesFromValue(right);
+        
+        for (let i = 0; i < leftSamples.length; i++) {
+          const result = this.safeDivision(leftSamples[i], rightSamples[i % rightSamples.length]);
+          if (result === null) {
+            return new CellError(ErrorType.DIV_BY_ZERO);
+          }
+          resultSamples.push(result);
+        }
+        
+        const { mu, sigma2 } = this.fitLogNormal(resultSamples);
+        return new LogNormalNumber(mu, sigma2, this.config);
+      } else {
+        // Fall back to sampled distribution
+        const resultSamples: number[] = [];
+        const leftSamples = this.getSamplesFromValue(left);
+        const rightSamples = this.getSamplesFromValue(right);
+        
+        for (let i = 0; i < leftSamples.length; i++) {
+          const result = this.safeDivision(leftSamples[i], rightSamples[i % rightSamples.length]);
+          if (result === null) {
+            return new CellError(ErrorType.DIV_BY_ZERO);
+          }
+          resultSamples.push(result);
+        }
+        
+        return new SampledDistribution(resultSamples, this.config);
+      }
+    }
+
+    // Handle uniform distributions
+    if (left instanceof UniformNumber || right instanceof UniformNumber) {
+      if (this.preservesUniform('/', left, right)) {
+        // Scalar division - affine transform
+        const resultSamples: number[] = [];
+        const leftSamples = this.getSamplesFromValue(left);
+        const rightSamples = this.getSamplesFromValue(right);
+        
+        for (let i = 0; i < leftSamples.length; i++) {
+          const result = this.safeDivision(leftSamples[i], rightSamples[i % rightSamples.length]);
+          if (result === null) {
+            return new CellError(ErrorType.DIV_BY_ZERO);
+          }
+          resultSamples.push(result);
+        }
+        
+        const { a, b } = this.fitUniform(resultSamples);
+        return new UniformNumber(a, b, this.config);
+      } else {
+        // Fall back to sampled distribution
+        const resultSamples: number[] = [];
+        const leftSamples = this.getSamplesFromValue(left);
+        const rightSamples = this.getSamplesFromValue(right);
+        
+        for (let i = 0; i < leftSamples.length; i++) {
+          const result = this.safeDivision(leftSamples[i], rightSamples[i % rightSamples.length]);
+          if (result === null) {
+            return new CellError(ErrorType.DIV_BY_ZERO);
+          }
+          resultSamples.push(result);
+        }
+        
+        return new SampledDistribution(resultSamples, this.config);
+      }
+    }
+
     if (
       (left instanceof GaussianNumber || left instanceof SampledDistribution) &&
       (right instanceof GaussianNumber || right instanceof SampledDistribution)
@@ -595,7 +973,9 @@ export class ArithmeticHelper {
       return new SampledDistribution(resultSamples);
     } else if (
       left instanceof GaussianNumber ||
-      left instanceof SampledDistribution
+      left instanceof SampledDistribution ||
+      left instanceof LogNormalNumber ||
+      left instanceof UniformNumber
     ) {
       const rightValue = getRawValue(right);
       if (rightValue === 0 || this.isEffectivelyZero(rightValue, true)) {
@@ -615,7 +995,8 @@ export class ArithmeticHelper {
       }
     } else {
       const leftValue = getRawValue(left);
-      const rightSamples = (right as GaussianNumber).getSamples();
+      const rightDist = right as any;
+      const rightSamples: number[] = rightDist.getSamples ? rightDist.getSamples() : (right instanceof GaussianNumber ? right.getSamples() : []);
 
       // Check for division by zero or near-zero values
       const resultSamples: number[] = [];
@@ -886,6 +1267,11 @@ export class ArithmeticHelper {
       case NumberType.NUMBER_SAMPLED:
         // For sampled distributions, create a new one with a single sample
         return new SampledDistribution([value], this.config);
+      case NumberType.NUMBER_CONFIDENCE_INTERVAL:
+        // For confidence intervals, convert to Gaussian for arithmetic operations
+        // This maintains the uncertainty representation while allowing arithmetic
+        return new GaussianNumber(value, 0, this.config);
+   
       default:
         throw new Error(`Unsupported number type: ${type}`);
     }
@@ -932,7 +1318,12 @@ export class ArithmeticHelper {
     left: InternalNoErrorScalarValue,
     right: InternalNoErrorScalarValue
   ): number {
-    if (left instanceof GaussianNumber || right instanceof GaussianNumber) {
+    if (
+      left instanceof GaussianNumber || 
+      right instanceof GaussianNumber ||
+      left instanceof ConfidenceIntervalNumber ||
+      right instanceof ConfidenceIntervalNumber
+    ) {
       return this.compareGaussians(left, right);
     }
 
@@ -979,6 +1370,14 @@ export class ArithmeticHelper {
     left: InternalNoErrorScalarValue,
     right: InternalNoErrorScalarValue
   ): number {
+    // Convert ConfidenceIntervalNumber to GaussianNumber for comparison
+    if (left instanceof ConfidenceIntervalNumber) {
+      left = left.toGaussian();
+    }
+    if (right instanceof ConfidenceIntervalNumber) {
+      right = right.toGaussian();
+    }
+
     if (left instanceof GaussianNumber && right instanceof GaussianNumber) {
       return this.floatCmp(left, right);
     }
@@ -1313,10 +1712,12 @@ function inferExtendedNumberTypeAdditive(
   const { type: rightType, format: rightFormat } =
     getTypeFormatOfExtendedNumber(rightArg);
 
-  // If either operand is a Gaussian number, the result should be a Gaussian number
+  // If either operand is a Gaussian number or ConfidenceInterval, the result should be a Gaussian number
   if (
     leftType === NumberType.NUMBER_GAUSSIAN ||
-    rightType === NumberType.NUMBER_GAUSSIAN
+    rightType === NumberType.NUMBER_GAUSSIAN ||
+    leftType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
+    rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL
   ) {
     return { type: NumberType.NUMBER_GAUSSIAN };
   }
@@ -1369,12 +1770,14 @@ function inferExtendedNumberTypeMultiplicative(
   let { type: rightType, format: rightFormat } =
     getTypeFormatOfExtendedNumber(rightArg);
 
-  // If either operand is a Gaussian number or SampledDistribution, the result should be a SampledDistribution
+  // If either operand is a Gaussian number, SampledDistribution, or ConfidenceInterval, the result should be a SampledDistribution
   if (
     leftType === NumberType.NUMBER_GAUSSIAN ||
     rightType === NumberType.NUMBER_GAUSSIAN ||
     leftType === NumberType.NUMBER_SAMPLED ||
-    rightType === NumberType.NUMBER_SAMPLED
+    rightType === NumberType.NUMBER_SAMPLED ||
+    leftType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
+    rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL
   ) {
     return { type: NumberType.NUMBER_SAMPLED };
   }

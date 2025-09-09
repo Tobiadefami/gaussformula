@@ -45,13 +45,19 @@ export class Unparser {
       case AstNodeType.GAUSSIAN_NUMBER: {
         return imageWithWhitespace(`N(${formatNumber(ast.value.mean, this.config.decimalSeparator)}, ${formatNumber(ast.value.variance, this.config.decimalSeparator)})`, ast.leadingWhitespace)
       }
+      case AstNodeType.LOG_NORMAL_NUMBER: {
+        return imageWithWhitespace(`LN(${formatNumber(ast.value.mu, this.config.decimalSeparator)}, ${formatNumber(ast.value.sigma2, this.config.decimalSeparator)})`, ast.leadingWhitespace)
+      }
+      case AstNodeType.UNIFORM_NUMBER: {
+        return imageWithWhitespace(`U(${formatNumber(ast.value.a, this.config.decimalSeparator)}, ${formatNumber(ast.value.b, this.config.decimalSeparator)})`, ast.leadingWhitespace)
+      }
       case AstNodeType.STRING: {
         return imageWithWhitespace('"' + ast.value + '"', ast.leadingWhitespace)
       }
       case AstNodeType.FUNCTION_CALL: {
         const args = ast.args.map((arg) => arg !== undefined ? this.unparseAst(arg, address) : ''
         ).join(this.config.functionArgSeparator)
-        const procedureName = this.config.translationPackage.isFunctionTranslated(ast.procedureName) ?
+      const procedureName = this.config.translationPackage.isFunctionTranslated(ast.procedureName) ?
           this.config.translationPackage.getFunctionTranslation(ast.procedureName) :
           ast.procedureName
         const rightPart = procedureName + '(' + args + imageWithWhitespace(')', ast.internalWhitespace)
