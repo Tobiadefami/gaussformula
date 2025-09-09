@@ -86,64 +86,6 @@ export class PercentNumber extends RichNumber {
   }
 }
 
-export class ConfidenceIntervalNumber extends RichNumber {
-  public readonly lower: number;
-  public readonly upper: number;
-  public readonly confidenceLevel: number;
-
-  constructor(
-    lower: number,
-    upper: number,
-    confidenceLevel: number = 95,
-    format?: string
-  ) {
-    // Calculate the mean as the center of the confidence interval
-    const mean = (lower + upper) / 2;
-    super(mean, format);
-    this.lower = lower;
-    this.upper = upper;
-    this.confidenceLevel = confidenceLevel;
-  }
-
-  public getLower(): number {
-    return this.lower;
-  }
-
-  public getUpper(): number {
-    return this.upper;
-  }
-
-  public getConfidenceLevel(): number {
-    return this.confidenceLevel;
-  }
-
-  public getDetailedType(): NumberType {
-    return NumberType.NUMBER_CONFIDENCE_INTERVAL;
-  }
-
-  public fromNumber(val: number): this {
-    // When creating a new confidence interval from a number,
-    // we need to maintain the same width and confidence level
-    const width = this.upper - this.lower;
-    const newLower = val - width / 2;
-    const newUpper = val + width / 2;
-    return new ConfidenceIntervalNumber(
-      newLower,
-      newUpper,
-      this.confidenceLevel,
-      this.format
-    ) as this;
-  }
-
-  public toGaussian(): GaussianNumber {
-    const { mean, variance } = confidenceIntervalToGaussian(
-      this.lower,
-      this.upper,
-      this.confidenceLevel
-    );
-    return new GaussianNumber(mean, variance);
-  }
-}
 
 export type ExtendedNumber = number | RichNumber;
 
@@ -161,6 +103,8 @@ export enum NumberType {
   NUMBER_GAUSSIAN = "NUMBER_GAUSSIAN",
   NUMBER_SAMPLED = "NUMBER_SAMPLED",
   NUMBER_CONFIDENCE_INTERVAL = "NUMBER_CONFIDENCE_INTERVAL",
+  NUMBER_LOGNORMAL = "NUMBER_LOGNORMAL",
+  NUMBER_UNIFORM = "NUMBER_UNIFORM",
 }
 
 export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
@@ -178,6 +122,10 @@ export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
     return NumberType.NUMBER_GAUSSIAN;
   } else if (value instanceof ConfidenceIntervalNumber) {
     return NumberType.NUMBER_CONFIDENCE_INTERVAL;
+  } else if (value instanceof LogNormalNumber) {
+    return NumberType.NUMBER_LOGNORMAL;
+  } else if (value instanceof UniformNumber) {
+    return NumberType.NUMBER_UNIFORM;
   } else {
     return NumberType.NUMBER_RAW;
   }
@@ -240,6 +188,222 @@ export function confidenceIntervalToGaussian(
   const variance = standardDeviation * standardDeviation;
 
   return { mean, variance };
+}
+
+export function confidenceIntervalToLogNormal(
+  lower: number,
+  upper: number,
+  confidenceLevel: number
+): { mu: number; sigma2: number } {
+  const { mean, variance } = confidenceIntervalToGaussian(lower, upper, confidenceLevel);
+  return { mu: mean, sigma2: variance };
+}
+
+export function confidenceIntervalToUniform(
+  lower: number,
+  upper: number,
+  confidenceLevel: number
+): { a: number; b: number } {
+  return { a: lower, b: upper };
+}
+/**
+ * Generate samples from a log-normal distribution with given underlying normal parameters.
+ *
+ * X ~ LogNormal(μ, σ²) ⇔ ln X ~ N(μ, σ²)
+ */
+export function generateLogNormalSamples(
+  mu: number,
+  sigma2: number,
+  sampleSize: number
+): number[] {
+  const normalSamples = generateNormalSamples(mu, sigma2, sampleSize);
+  return normalSamples.map((x) => Math.exp(x));
+}
+
+/**
+ * Generate samples from a continuous uniform distribution U(a,b).
+ */
+export function generateUniformSamples(
+  a: number,
+  b: number,
+  sampleSize: number
+): number[] {
+  return Array.from({ length: sampleSize }, () => a + (b - a) * Math.random());
+}
+
+/**
+ * Log-normal distributed value backed by underlying Normal(μ, σ²).
+ */
+
+export class LogNormalNumber extends RichNumber {
+  private samples: number[] | null = null;
+
+  constructor(
+    public readonly mu: number,
+    public readonly sigma2: number,
+    private readonly config?: Config
+  ) {
+    super(Math.exp(mu + sigma2 / 2)); // mean of log-normal
+    this.generateSamples();
+  }
+
+  private generateSamples() {
+    this.samples = generateLogNormalSamples(
+      this.mu,
+      this.sigma2,
+      this.config?.sampleSize ?? Config.defaultConfig.sampleSize
+    );
+  }
+
+  public getSamples(): number[] {
+    if (!this.samples) {
+      this.generateSamples();
+    }
+    return this.samples!;
+  }
+
+  public getMean(): number {
+    return this.val;
+  }
+
+  public getVariance(): number {
+    return (
+      (Math.exp(this.sigma2) - 1) * Math.exp(2 * this.mu + this.sigma2)
+    );
+  }
+
+  public getDetailedType(): NumberType {
+    return NumberType.NUMBER_LOGNORMAL;
+  }
+
+  public fromNumber(val: number): this {
+    const newMu = Math.log(val) - this.sigma2 / 2;
+    return new LogNormalNumber(newMu, this.sigma2, this.config) as this;
+  }
+}
+
+/**
+ * Uniform distribution U(a,b).
+ */
+export class UniformNumber extends RichNumber {
+  private samples: number[] | null = null;
+
+  constructor(
+    public readonly a: number,
+    public readonly b: number,
+    private readonly config?: Config
+  ) {
+    super((a + b) / 2);
+    this.generateSamples();
+  }
+
+  private generateSamples() {
+    this.samples = generateUniformSamples(
+      this.a,
+      this.b,
+      this.config?.sampleSize ?? Config.defaultConfig.sampleSize
+    );
+  }
+
+  public getSamples(): number[] {
+    if (!this.samples) {
+      this.generateSamples();
+    }
+    return this.samples!;
+  }
+
+  public getMean(): number {
+    return this.val;
+  }
+
+  public getVariance(): number {
+    return Math.pow(this.b - this.a, 2) / 12;
+  }
+
+  public getDetailedType(): NumberType {
+    return NumberType.NUMBER_UNIFORM;
+  }
+
+  public fromNumber(val: number): this {
+    const halfWidth = (this.b - this.a) / 2;
+    return new UniformNumber(val - halfWidth, val + halfWidth, this.config) as this;
+  }
+}
+
+
+export class ConfidenceIntervalNumber extends RichNumber {
+  public readonly lower: number;
+  public readonly upper: number;
+  public readonly confidenceLevel: number;
+
+  constructor(
+    lower: number,
+    upper: number,
+    confidenceLevel: number = 95,
+    format?: string
+  ) {
+    // Calculate the mean as the center of the confidence interval
+    const mean = (lower + upper) / 2;
+    super(mean, format);
+    this.lower = lower;
+    this.upper = upper;
+    this.confidenceLevel = confidenceLevel;
+  }
+
+  public getLower(): number {
+    return this.lower;
+  }
+
+  public getUpper(): number {
+    return this.upper;
+  }
+
+  public getConfidenceLevel(): number {
+    return this.confidenceLevel;
+  }
+
+  public getDetailedType(): NumberType {
+    return NumberType.NUMBER_CONFIDENCE_INTERVAL;
+  }
+
+  public fromNumber(val: number): this {
+    // When creating a new confidence interval from a number,
+    // we need to maintain the same width and confidence level
+    const width = this.upper - this.lower;
+    const newLower = val - width / 2;
+    const newUpper = val + width / 2;
+    return new ConfidenceIntervalNumber(
+      newLower,
+      newUpper,
+      this.confidenceLevel,
+      this.format
+    ) as this;
+  }
+
+  public toGaussian(): GaussianNumber {
+    const { mean, variance } = confidenceIntervalToGaussian(
+      this.lower,
+      this.upper,
+      this.confidenceLevel
+    );
+    return new GaussianNumber(mean, variance);
+  }
+  public toLogNormal(): LogNormalNumber {
+    const { mu, sigma2 } = confidenceIntervalToLogNormal(
+      this.lower,
+      this.upper,
+      this.confidenceLevel
+    );
+    return new LogNormalNumber(mu, sigma2);
+  }
+  public toUniform(): UniformNumber {
+    const { a, b } = confidenceIntervalToUniform(
+      this.lower,
+      this.upper,
+      this.confidenceLevel
+    );
+    return new UniformNumber(a, b);
+  }
 }
 
 export class SampledDistribution extends RichNumber {

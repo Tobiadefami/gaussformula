@@ -11,11 +11,12 @@ import {
   DateTimeNumber,
   ExtendedNumber,
   GaussianNumber,
+  LogNormalNumber,
   PercentNumber,
   SampledDistribution,
   TimeNumber,
+  UniformNumber,
   cloneNumber,
-  confidenceIntervalToGaussian,
   getRawValue,
 } from "./interpreter/InterpreterValue";
 import { DateTimeHelper, timeToNumber } from "./DateTimeHelper";
@@ -165,9 +166,35 @@ export class CellContentParser {
       if (gaussianMatch) {
         const mean = Number(gaussianMatch[1]);
         const variance = Number(gaussianMatch[2]);
-        if (!isNaN(mean) && !isNaN(variance)) {
+        if (!isNaN(mean) && !isNaN(variance) && variance >= 0) {
           return new CellContent.Number(
             new GaussianNumber(mean, variance, this.config)
+          );
+        }
+      }
+
+      // Try to parse as log-normal distribution LN(mu, sigma2)
+      const logNormalMatch =
+        /^LN\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/i.exec(content);
+      if (logNormalMatch) {
+        const mu = Number(logNormalMatch[1]);
+        const sigma2 = Number(logNormalMatch[2]);
+        if (!isNaN(mu) && !isNaN(sigma2) && sigma2 >= 0) {
+          return new CellContent.Number(
+            new LogNormalNumber(mu, sigma2, this.config)
+          );
+        }
+      }
+
+      // Try to parse as uniform distribution U(a, b)
+      const uniformMatch =
+        /^U\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/i.exec(content);
+      if (uniformMatch) {
+        const a = Number(uniformMatch[1]);
+        const b = Number(uniformMatch[2]);
+        if (!isNaN(a) && !isNaN(b) && b >= a) {
+          return new CellContent.Number(
+            new UniformNumber(a, b, this.config)
           );
         }
       }

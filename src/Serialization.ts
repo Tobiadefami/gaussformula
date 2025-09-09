@@ -15,8 +15,10 @@ import {
   EmptyValue,
   GaussianNumber,
   InterpreterValue,
+  LogNormalNumber,
   RawInterpreterValue,
   SampledDistribution,
+  UniformNumber,
   getRawValue as getInterpreterRawValue,
 } from "./interpreter/InterpreterValue";
 import { NamedExpressionOptions, NamedExpressions } from "./NamedExpressions";
@@ -116,6 +118,10 @@ export class Serialization {
       return null;
     } else if (value instanceof GaussianNumber) {
       return `N(μ=${value.mean.toFixed(2)}, σ²=${value.variance.toFixed(2)})`;
+    } else if (value instanceof LogNormalNumber) {
+      return `LN(${value.mu.toFixed(2)}, ${value.sigma2.toFixed(2)})`;
+    } else if (value instanceof UniformNumber) {
+      return `U(${value.a.toFixed(2)}, ${value.b.toFixed(2)})`;
     } else if (value instanceof SampledDistribution) {
       const mean = value.getMean();
       const variance = value.getVariance();

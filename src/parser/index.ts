@@ -47,6 +47,8 @@ export {
   EmptyArgAst,
   NumberAst,
   GaussianNumberAst,
+  LogNormalNumberAst,
+  UniformNumberAst, 
   StringAst,
   CellRangeAst,
   CellReferenceAst,

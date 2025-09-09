@@ -9,6 +9,10 @@ export function transformAst(ast: any): any {
     case AstNodeType.ERROR:
     case AstNodeType.GAUSSIAN_NUMBER:
       return ast
+    case AstNodeType.LOG_NORMAL_NUMBER:
+      return ast
+    case AstNodeType.UNIFORM_NUMBER:
+      return ast
     // ... rest of the cases ...
   }
   return ast

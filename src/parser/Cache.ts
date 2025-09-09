@@ -77,6 +77,8 @@ export const doesContainFunctions = (ast: Ast, functionCriterion: (functionId: s
     case AstNodeType.ERROR_WITH_RAW_INPUT:
     case AstNodeType.EMPTY:
     case AstNodeType.GAUSSIAN_NUMBER:
+    case AstNodeType.LOG_NORMAL_NUMBER:
+    case AstNodeType.UNIFORM_NUMBER:
       return false
     default: {
       if ('left' in ast && 'right' in ast) {
