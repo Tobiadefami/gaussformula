@@ -290,14 +290,15 @@ export class ArithmeticHelper {
   };
   
   /**
-   * Check if a value is an uncertain/distribution type (input types only)
-   * SampledDistribution is not an input type - it's only a return type
+   * Check if a value is an uncertain/distribution type
+   * Includes SampledDistribution since it can exist in cells from previous calculations
    */
   private isUncertain(value: ExtendedNumber): boolean {
     return value instanceof GaussianNumber ||
            value instanceof LogNormalNumber ||
            value instanceof UniformNumber ||
-           value instanceof ConfidenceIntervalNumber;
+           value instanceof ConfidenceIntervalNumber ||
+           value instanceof SampledDistribution;
   }
   
   /**
@@ -308,7 +309,8 @@ export class ArithmeticHelper {
     return value instanceof GaussianNumber ||
            value instanceof LogNormalNumber ||
            value instanceof UniformNumber ||
-           value instanceof ConfidenceIntervalNumber;
+           value instanceof ConfidenceIntervalNumber ||
+           value instanceof SampledDistribution;
   }
 
 
@@ -358,11 +360,13 @@ export class ArithmeticHelper {
       return value.toSamples(this.config);
     } else if (value instanceof GaussianNumber || 
         value instanceof LogNormalNumber ||
-        value instanceof UniformNumber) {
+        value instanceof UniformNumber ||
+        value instanceof SampledDistribution) {
       return value.getSamples();
     } else {
-      // For scalar values, create an array with the same sample size
-      const sampleSize = this.config.sampleSize || 10000;
+      // For scalar values, create an array with the same sample size as configured
+      // Use the same sample size as other distribution types for consistency
+      const sampleSize = this.config.sampleSize;
       const scalarValue = getRawValue(value);
       return Array(sampleSize).fill(scalarValue);
     }
@@ -510,12 +514,18 @@ export class ArithmeticHelper {
     left: ExtendedNumber,
     right: ExtendedNumber
   ): ExtendedNumber | CellError {
+    // Get samples to check the original sample count
+    const leftSamples = this.getSamplesFromValue(left);
+    const rightSamples = this.getSamplesFromValue(right);
+    const originalSampleCount = Math.max(leftSamples.length, rightSamples.length);
+    
     // Unified Monte-Carlo approach: everything becomes samples
     const resultSamples = this.elementwiseBinaryOp(left, right, (a, b) => 
       this.safeDivision(a, b));
     
-    // Check if any division failed (returned null)
-    if (resultSamples.length === 0 || resultSamples.some(s => s === null)) {
+    // Check if too many divisions failed (null values were filtered out)
+    // If we lost more than half the samples to division by zero, return error
+    if (resultSamples.length < originalSampleCount / 2) {
       return new CellError(ErrorType.DIV_BY_ZERO);
     }
     
@@ -1218,14 +1228,20 @@ function inferExtendedNumberTypeAdditive(
   const { type: rightType, format: rightFormat } =
     getTypeFormatOfExtendedNumber(rightArg);
 
-  // If either operand is a Gaussian number or ConfidenceInterval, the result should be a Gaussian number
+  // If either operand is any distribution type, the result should be a SampledDistribution
   if (
     leftType === NumberType.NUMBER_GAUSSIAN ||
     rightType === NumberType.NUMBER_GAUSSIAN ||
     leftType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
-    rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL
+    rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
+    leftType === NumberType.NUMBER_LOGNORMAL ||
+    rightType === NumberType.NUMBER_LOGNORMAL ||
+    leftType === NumberType.NUMBER_UNIFORM ||
+    rightType === NumberType.NUMBER_UNIFORM ||
+    leftType === NumberType.NUMBER_SAMPLED ||
+    rightType === NumberType.NUMBER_SAMPLED
   ) {
-    return { type: NumberType.NUMBER_GAUSSIAN };
+    return { type: NumberType.NUMBER_SAMPLED };
   }
 
   if (leftType === NumberType.NUMBER_RAW) {

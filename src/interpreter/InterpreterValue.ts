@@ -10,14 +10,15 @@
  * 
  * This module implements a Guesstimate-inspired approach to uncertainty:
  * 
- * INPUT TYPES (what users can enter):
+ * INPUT TYPES (what can exist in cells):
  * - ConfidenceIntervalNumber: Primary uncertain type ("10 to 20")
  * - GaussianNumber: Normal distribution N(μ, σ²)  
  * - LogNormalNumber: Log-normal distribution
  * - UniformNumber: Uniform distribution U(a,b)
+ * - SampledDistribution: Results from Monte-Carlo operations (can be used in further operations)
  * - Scalars: Regular numbers, strings, booleans
  * 
- * OUTPUT TYPE (arithmetic results):
+ * RETURN TYPE (primary arithmetic results):
  * - SampledDistribution: Results from Monte-Carlo operations
  * 
  * CORE PRINCIPLE:
@@ -469,8 +470,8 @@ export class ConfidenceIntervalNumber extends RichNumber {
 
 /**
  * SampledDistribution represents the result of Monte-Carlo arithmetic operations.
- * This is ONLY a return type - users cannot input SampledDistribution values directly.
- * All uncertain arithmetic operations return SampledDistribution objects.
+ * While users cannot directly input SampledDistribution values, they can exist in cells
+ * from previous calculations and be used in further arithmetic operations.
  */
 export class SampledDistribution extends RichNumber {
   private readonly samples: number[];
