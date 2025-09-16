@@ -3,6 +3,31 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
+/**
+ * ========================================================================
+ * InterpreterValue: CI-First Uncertainty Arithmetic Architecture
+ * ========================================================================
+ * 
+ * This module implements a Guesstimate-inspired approach to uncertainty:
+ * 
+ * INPUT TYPES (what can exist in cells):
+ * - ConfidenceIntervalNumber: Primary uncertain type ("10 to 20")
+ * - GaussianNumber: Normal distribution N(μ, σ²)  
+ * - LogNormalNumber: Log-normal distribution
+ * - UniformNumber: Uniform distribution U(a,b)
+ * - SampledDistribution: Results from Monte-Carlo operations (can be used in further operations)
+ * - Scalars: Regular numbers, strings, booleans
+ * 
+ * RETURN TYPE (primary arithmetic results):
+ * - SampledDistribution: Results from Monte-Carlo operations
+ * 
+ * CORE PRINCIPLE:
+ * All uncertain arithmetic uses sampling (Monte-Carlo) approach:
+ * Input → Samples → Element-wise operations → SampledDistribution result
+ * 
+ * No closed-form distribution arithmetic - sampling is the source of truth.
+ */
+
 import { CellError } from "../Cell";
 import { Config } from "../Config";
 import { SimpleRangeValue } from "../SimpleRangeValue";
@@ -94,17 +119,22 @@ export function isExtendedNumber(val: any): val is ExtendedNumber {
 }
 
 export enum NumberType {
+  // Basic scalar types
   NUMBER_RAW = "NUMBER_RAW",
   NUMBER_DATE = "NUMBER_DATE",
   NUMBER_TIME = "NUMBER_TIME",
   NUMBER_DATETIME = "NUMBER_DATETIME",
   NUMBER_CURRENCY = "NUMBER_CURRENCY",
   NUMBER_PERCENT = "NUMBER_PERCENT",
+  
+  // Input distribution types (what users can enter)
+  NUMBER_CONFIDENCE_INTERVAL = "NUMBER_CONFIDENCE_INTERVAL", // Primary uncertain input type
   NUMBER_GAUSSIAN = "NUMBER_GAUSSIAN",
-  NUMBER_SAMPLED = "NUMBER_SAMPLED",
-  NUMBER_CONFIDENCE_INTERVAL = "NUMBER_CONFIDENCE_INTERVAL",
-  NUMBER_LOGNORMAL = "NUMBER_LOGNORMAL",
+  NUMBER_LOGNORMAL = "NUMBER_LOGNORMAL", 
   NUMBER_UNIFORM = "NUMBER_UNIFORM",
+  
+  // Output distribution type (arithmetic results only)
+  NUMBER_SAMPLED = "NUMBER_SAMPLED", // Monte-Carlo results
 }
 
 export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
@@ -167,45 +197,6 @@ export function generateNormalSamples(
   });
 }
 
-export function confidenceIntervalToGaussian(
-  lower: number,
-  upper: number,
-  confidenceLevel: number
-): { mean: number; variance: number } {
-  // Get Z-score for confidence level
-  const getZScore = (confidence: number): number => {
-    const zScores: { [key: number]: number } = {
-      90: 1.645,
-      95: 1.96,
-      99: 2.576,
-    };
-    return zScores[confidence] || 1.96; // Default to 95% CI
-  };
-
-  const zScore = getZScore(confidenceLevel);
-  const mean = (lower + upper) / 2;
-  const standardDeviation = (upper - lower) / (2 * zScore);
-  const variance = standardDeviation * standardDeviation;
-
-  return { mean, variance };
-}
-
-export function confidenceIntervalToLogNormal(
-  lower: number,
-  upper: number,
-  confidenceLevel: number
-): { mu: number; sigma2: number } {
-  const { mean, variance } = confidenceIntervalToGaussian(lower, upper, confidenceLevel);
-  return { mu: mean, sigma2: variance };
-}
-
-export function confidenceIntervalToUniform(
-  lower: number,
-  upper: number,
-  confidenceLevel: number
-): { a: number; b: number } {
-  return { a: lower, b: upper };
-}
 /**
  * Generate samples from a log-normal distribution with given underlying normal parameters.
  *
@@ -232,9 +223,12 @@ export function generateUniformSamples(
 }
 
 /**
- * Log-normal distributed value backed by underlying Normal(μ, σ²).
+ * LogNormalNumber represents a log-normal distribution backed by underlying Normal(μ, σ²).
+ * This is an input distribution type that can be used in formulas.
+ * All arithmetic operations convert this to samples for Monte-Carlo computation.
+ * 
+ * X ~ LogNormal(μ, σ²) ⇔ ln X ~ N(μ, σ²)
  */
-
 export class LogNormalNumber extends RichNumber {
   private samples: number[] | null = null;
 
@@ -283,7 +277,9 @@ export class LogNormalNumber extends RichNumber {
 }
 
 /**
- * Uniform distribution U(a,b).
+ * UniformNumber represents a continuous uniform distribution U(a,b).
+ * This is an input distribution type that can be used in formulas.
+ * All arithmetic operations convert this to samples for Monte-Carlo computation.
  */
 export class UniformNumber extends RichNumber {
   private samples: number[] | null = null;
@@ -331,23 +327,48 @@ export class UniformNumber extends RichNumber {
 }
 
 
+/**
+ * Interpretation types for confidence intervals following the Guesstimate approach.
+ * - 'normal': Treats bounds as symmetric confidence interval (default)
+ * - 'uniform': Treats bounds as hard min/max limits  
+ * - 'lognormal': Treats bounds as 5th-95th percentiles (positive values only)
+ */
+export type CIInterpretation = 'normal' | 'uniform' | 'lognormal';
+
+/**
+ * ConfidenceIntervalNumber represents the primary input type for uncertain values.
+ * This follows the Guesstimate approach where users enter "low to high" ranges
+ * and the system interprets them according to the specified interpretation.
+ * 
+ * All arithmetic operations convert this to samples via toSamples() method.
+ */
 export class ConfidenceIntervalNumber extends RichNumber {
   public readonly lower: number;
   public readonly upper: number;
   public readonly confidenceLevel: number;
+  public readonly interpretation: CIInterpretation;
 
   constructor(
     lower: number,
     upper: number,
-    confidenceLevel: number = 95,
-    format?: string
+    confidenceLevel: number = 90, // Default to 90% like Guesstimate
+    options?: {
+      format?: string;
+      interpretation?: CIInterpretation;
+    }
   ) {
     // Calculate the mean as the center of the confidence interval
     const mean = (lower + upper) / 2;
-    super(mean, format);
+    super(mean, options?.format);
     this.lower = lower;
     this.upper = upper;
     this.confidenceLevel = confidenceLevel;
+    this.interpretation = options?.interpretation || 'normal';
+    
+    // For lognormal, require positivity
+    if (this.interpretation === 'lognormal' && (lower <= 0 || upper <= 0)) {
+      throw new Error('Lognormal interpretation requires positive bounds');
+    }
   }
 
   public getLower(): number {
@@ -376,36 +397,82 @@ export class ConfidenceIntervalNumber extends RichNumber {
       newLower,
       newUpper,
       this.confidenceLevel,
-      this.format
+      {
+        format: this.format,
+        interpretation: this.interpretation
+      }
     ) as this;
   }
+  
+  /**
+   * Generate samples according to the interpretation of this confidence interval.
+   * This is the core of the Guesstimate approach: CI → samples → arithmetic → result
+   */
+  public toSamples(config?: Config): number[] {
+    const sampleSize = config?.sampleSize || Config.defaultConfig.sampleSize;
+    
+    switch (this.interpretation) {
+      case 'normal': {
+        // Treat lower..upper as symmetric CI around mean
+        // For 90% CI: z = 1.645, for 95% CI: z = 1.96
+        const zScore = this.getZScoreForConfidence();
+        const mean = (this.lower + this.upper) / 2;
+        const std = (this.upper - this.lower) / (2 * zScore);
+        const variance = std * std;
+        return generateNormalSamples(mean, variance, sampleSize);
+      }
+      
+      case 'uniform': {
+        // Hard bounds: sample uniformly on [lower, upper]
+        return generateUniformSamples(this.lower, this.upper, sampleSize);
+      }
+      
+      case 'lognormal': {
+        // Treat lower..upper as 5th & 95th percentiles of lognormal
+        // We need to solve for μ and σ of the underlying normal distribution
+        // For lognormal: P(X < x) = Φ((ln(x) - μ) / σ)
+        // where Φ is the standard normal CDF
+        
+        // For 5th percentile: Φ((ln(lower) - μ) / σ) = 0.05 → (ln(lower) - μ) / σ = -1.645
+        // For 95th percentile: Φ((ln(upper) - μ) / σ) = 0.95 → (ln(upper) - μ) / σ = 1.645
+        
+        const lnLower = Math.log(this.lower);
+        const lnUpper = Math.log(this.upper);
+        
+        // From the two equations:
+        // lnLower = μ - 1.645σ
+        // lnUpper = μ + 1.645σ
+        // Solving: μ = (lnLower + lnUpper) / 2, σ = (lnUpper - lnLower) / 3.29
+        
+        const mu = (lnLower + lnUpper) / 2;
+        const sigma = (lnUpper - lnLower) / 3.29; // 3.29 = 2 * 1.645
+        const sigma2 = sigma * sigma;
+        
+        return generateLogNormalSamples(mu, sigma2, sampleSize);
+      }
+      
+      default:
+        throw new Error(`Unknown interpretation: ${this.interpretation}`);
+    }
+  }
+  
+  private getZScoreForConfidence(): number {
+    // Common confidence levels and their z-scores
+    const zScores: { [key: number]: number } = {
+      90: 1.645,
+      95: 1.96,
+      99: 2.576
+    };
+    return zScores[this.confidenceLevel] || 1.645; // Default to 90%
+  }
 
-  public toGaussian(): GaussianNumber {
-    const { mean, variance } = confidenceIntervalToGaussian(
-      this.lower,
-      this.upper,
-      this.confidenceLevel
-    );
-    return new GaussianNumber(mean, variance);
-  }
-  public toLogNormal(): LogNormalNumber {
-    const { mu, sigma2 } = confidenceIntervalToLogNormal(
-      this.lower,
-      this.upper,
-      this.confidenceLevel
-    );
-    return new LogNormalNumber(mu, sigma2);
-  }
-  public toUniform(): UniformNumber {
-    const { a, b } = confidenceIntervalToUniform(
-      this.lower,
-      this.upper,
-      this.confidenceLevel
-    );
-    return new UniformNumber(a, b);
-  }
 }
 
+/**
+ * SampledDistribution represents the result of Monte-Carlo arithmetic operations.
+ * While users cannot directly input SampledDistribution values, they can exist in cells
+ * from previous calculations and be used in further arithmetic operations.
+ */
 export class SampledDistribution extends RichNumber {
   private readonly samples: number[];
 
@@ -458,6 +525,11 @@ export class SampledDistribution extends RichNumber {
   }
 }
 
+/**
+ * GaussianNumber represents a normal distribution N(μ, σ²).
+ * This is an input distribution type that can be used in formulas.
+ * All arithmetic operations convert this to samples for Monte-Carlo computation.
+ */
 export class GaussianNumber extends RichNumber {
   private samples: number[] | null = null;
 
@@ -499,21 +571,4 @@ export class GaussianNumber extends RichNumber {
     return new GaussianNumber(val, this.variance, this.config) as this;
   }
 
-  public static preservesNormality(
-    left: ExtendedNumber,
-    right: ExtendedNumber,
-    operation: string
-  ): boolean {
-    if (operation === "+" || operation === "-") {
-      return true;
-    }
-
-    if (operation === "*" || operation === "/") {
-      return !(
-        left instanceof GaussianNumber && right instanceof GaussianNumber
-      );
-    }
-
-    return false;
-  }
 }
