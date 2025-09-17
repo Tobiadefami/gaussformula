@@ -9,9 +9,6 @@ import { CellValueChange, ChangeExporter } from "./ContentChanges";
 import {
   ConfidenceIntervalNumber,
   EmptyValue,
-  GaussianNumber,
-  LogNormalNumber,
-  UniformNumber,
   InterpreterValue,
   RawInterpreterValue,
   SampledDistribution,
@@ -108,15 +105,9 @@ export class Exporter implements ChangeExporter<ExportedChange> {
   public exportValue(value: InterpreterValue): CellValue {
     if (value === EmptyValue) {
       return null;
-    } else if (value instanceof GaussianNumber) {
-      return value;
-    } else if (value instanceof SampledDistribution) {
-      return value;
     } else if (value instanceof ConfidenceIntervalNumber) {
       return value;
-    } else if (value instanceof LogNormalNumber) {
-      return value;
-    } else if (value instanceof UniformNumber) {
+    } else if (value instanceof SampledDistribution) {
       return value;
     } else if (value instanceof CellError) {
       return this.detailedError(value);

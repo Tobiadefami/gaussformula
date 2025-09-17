@@ -6,9 +6,6 @@
 import { CellError, ErrorType } from "./Cell";
 import {
   ConfidenceIntervalNumber,
-  GaussianNumber,
-  LogNormalNumber,
-  UniformNumber,
   SampledDistribution,
 } from "./interpreter/InterpreterValue";
 
@@ -19,11 +16,8 @@ export type NoErrorCellValue =
   | string
   | boolean
   | null
-  | GaussianNumber
-  | SampledDistribution
   | ConfidenceIntervalNumber
-  | LogNormalNumber
-  | UniformNumber
+  | SampledDistribution
   | SimpleRangeValue;
 export type CellValue = NoErrorCellValue | DetailedCellError;
 

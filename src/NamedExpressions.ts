@@ -304,7 +304,7 @@ export const doesContainRelativeReferences = (ast: Ast): boolean => {
     case AstNodeType.STRING:
     case AstNodeType.ERROR:
     case AstNodeType.ERROR_WITH_RAW_INPUT:
-    case AstNodeType.GAUSSIAN_NUMBER:
+    // GAUSSIAN_NUMBER removed
       return false
     case AstNodeType.CELL_REFERENCE:
       return !ast.reference.isAbsolute()

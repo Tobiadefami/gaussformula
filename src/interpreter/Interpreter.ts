@@ -98,15 +98,7 @@ export class Interpreter {
       case AstNodeType.STRING: {
         return ast.value
       }
-      case AstNodeType.GAUSSIAN_NUMBER: {
-        return ast.value
-      }
-      case AstNodeType.LOG_NORMAL_NUMBER: {
-        return ast.value
-      }
-      case AstNodeType.UNIFORM_NUMBER: {
-        return ast.value
-      }
+      // Removed GAUSSIAN_NUMBER, LOG_NORMAL_NUMBER, UNIFORM_NUMBER - no longer supported
       case AstNodeType.CONCATENATE_OP: {
         const leftResult = this.evaluateAst(ast.left, state)
         const rightResult = this.evaluateAst(ast.right, state)

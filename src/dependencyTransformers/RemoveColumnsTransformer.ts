@@ -151,10 +151,7 @@ export class RemoveColumnsTransformer extends Transformer {
   }
 
   protected transformAst(ast: Ast, address: SimpleCellAddress): Ast {
-    // Handle Gaussian numbers by returning them unchanged
-    if (ast.type === AstNodeType.GAUSSIAN_NUMBER) {
-      return ast;
-    }
+    // GAUSSIAN_NUMBER removed - no longer supported
     
     // Call the parent class implementation for other AST node types
     return super.transformAst(ast, address);

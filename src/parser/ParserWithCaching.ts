@@ -119,8 +119,8 @@ export class ParserWithCaching {
       case AstNodeType.ERROR_WITH_RAW_INPUT:
       case AstNodeType.CELL_REFERENCE:
       case AstNodeType.NAMED_EXPRESSION:
-      case AstNodeType.GAUSSIAN_NUMBER:
         return ast
+      // GAUSSIAN_NUMBER removed
       case AstNodeType.CELL_RANGE: {
         const { start, end } = ast
         const orderedEnds = this.orderCellRangeEnds(start, end)
@@ -292,10 +292,7 @@ export class ParserWithCaching {
       case AstNodeType.STRING: {
         return imageWithWhitespace('"' + ast.value + '"', ast.leadingWhitespace)
       }
-      case AstNodeType.GAUSSIAN_NUMBER: {
-        const gaussianAst = ast as any
-        return imageWithWhitespace(`N(${gaussianAst.value.mean}, ${gaussianAst.value.variance})`, ast.leadingWhitespace)
-      }
+      // GAUSSIAN_NUMBER removed
       case AstNodeType.NAMED_EXPRESSION: {
         return imageWithWhitespace(ast.expressionName, ast.leadingWhitespace)
       }
