@@ -42,15 +42,7 @@ export class Unparser {
       case AstNodeType.NUMBER: {
         return imageWithWhitespace(formatNumber(ast.value, this.config.decimalSeparator), ast.leadingWhitespace)
       }
-      case AstNodeType.GAUSSIAN_NUMBER: {
-        return imageWithWhitespace(`N(${formatNumber(ast.value.mean, this.config.decimalSeparator)}, ${formatNumber(ast.value.variance, this.config.decimalSeparator)})`, ast.leadingWhitespace)
-      }
-      case AstNodeType.LOG_NORMAL_NUMBER: {
-        return imageWithWhitespace(`LN(${formatNumber(ast.value.mu, this.config.decimalSeparator)}, ${formatNumber(ast.value.sigma2, this.config.decimalSeparator)})`, ast.leadingWhitespace)
-      }
-      case AstNodeType.UNIFORM_NUMBER: {
-        return imageWithWhitespace(`U(${formatNumber(ast.value.a, this.config.decimalSeparator)}, ${formatNumber(ast.value.b, this.config.decimalSeparator)})`, ast.leadingWhitespace)
-      }
+      // Removed GAUSSIAN_NUMBER, LOG_NORMAL_NUMBER, UNIFORM_NUMBER - no longer supported
       case AstNodeType.STRING: {
         return imageWithWhitespace('"' + ast.value + '"', ast.leadingWhitespace)
       }

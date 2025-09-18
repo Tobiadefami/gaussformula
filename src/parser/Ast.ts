@@ -3,7 +3,7 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {ExtendedNumber, GaussianNumber, LogNormalNumber, UniformNumber} from '../interpreter/InterpreterValue'
+import {ExtendedNumber} from '../interpreter/InterpreterValue'
 
 import {AddressWithSheet} from './Address'
 import {CellAddress} from './CellAddress'
@@ -42,9 +42,6 @@ export type Ast =
   | ErrorWithRawInputAst
   | EmptyArgAst
   | ArrayAst
-  | GaussianNumberAst
-  | LogNormalNumberAst
-  | UniformNumberAst
 
 export interface ParsingError {
   type: ParsingErrorType,
@@ -71,9 +68,6 @@ export enum AstNodeType {
   EMPTY = 'EMPTY',
 
   NUMBER = 'NUMBER',
-  GAUSSIAN_NUMBER = 'GAUSSIAN_NUMBER',
-  LOG_NORMAL_NUMBER = 'LOG_NORMAL_NUMBER',
-  UNIFORM_NUMBER = 'UNIFORM_NUMBER',
   STRING = 'STRING',
 
   MINUS_UNARY_OP = 'MINUS_UNARY_OP',
@@ -151,40 +145,7 @@ export const buildNumberAst = (value: number, leadingWhitespace?: IToken): Numbe
   leadingWhitespace: leadingWhitespace?.image,
 })
 
-export interface GaussianNumberAst extends AstWithWhitespace {
-  type: AstNodeType.GAUSSIAN_NUMBER,
-  value: GaussianNumber,
-}
-
-export const buildGaussianNumberAst = (value: GaussianNumber, leadingWhitespace?: IToken): GaussianNumberAst => ({
-  type: AstNodeType.GAUSSIAN_NUMBER,
-  value: value,
-  leadingWhitespace: leadingWhitespace?.image,
-})
-
-export interface LogNormalNumberAst extends AstWithWhitespace {
-  type: AstNodeType.LOG_NORMAL_NUMBER,
-  value: LogNormalNumber,
-}
-
-
-export const buildLogNormalNumberAst = (value: LogNormalNumber, leadingWhitespace?: IToken): LogNormalNumberAst => ({
-  type: AstNodeType.LOG_NORMAL_NUMBER,
-  value,
-  leadingWhitespace: leadingWhitespace?.image,
-})
-
-export interface UniformNumberAst extends AstWithWhitespace {
-  type: AstNodeType.UNIFORM_NUMBER,
-  value: UniformNumber,
-}
-
-
-export const buildUniformNumberAst = (value: UniformNumber, leadingWhitespace?: IToken): UniformNumberAst => ({
-  type: AstNodeType.UNIFORM_NUMBER,
-  value,
-  leadingWhitespace: leadingWhitespace?.image,
-})
+// Removed GaussianNumberAst, LogNormalNumberAst, UniformNumberAst - no longer supported as input types
 
 export interface StringAst extends AstWithWhitespace {
   type: AstNodeType.STRING,

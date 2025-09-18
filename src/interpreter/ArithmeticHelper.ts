@@ -16,7 +16,6 @@ import {
   DateTimeNumber,
   EmptyValue,
   ExtendedNumber,
-  GaussianNumber,
   InternalNoErrorScalarValue,
   InternalScalarValue,
   InterpreterValue,
@@ -27,8 +26,6 @@ import {
   RawNoErrorScalarValue,
   RawScalarValue,
   SampledDistribution,
-  LogNormalNumber,
-  UniformNumber,
   TimeNumber,
   cloneNumber,
   getRawValue,
@@ -291,13 +288,10 @@ export class ArithmeticHelper {
   
   /**
    * Check if a value is an uncertain/distribution type
-   * Includes SampledDistribution since it can exist in cells from previous calculations
+   * Only ConfidenceIntervalNumber (input) and SampledDistribution (output) exist now
    */
   private isUncertain(value: ExtendedNumber): boolean {
-    return value instanceof GaussianNumber ||
-           value instanceof LogNormalNumber ||
-           value instanceof UniformNumber ||
-           value instanceof ConfidenceIntervalNumber ||
+    return value instanceof ConfidenceIntervalNumber ||
            value instanceof SampledDistribution;
   }
   
@@ -306,10 +300,7 @@ export class ArithmeticHelper {
    * Works with broader InternalNoErrorScalarValue type
    */
   private hasUncertainty(value: InternalNoErrorScalarValue): boolean {
-    return value instanceof GaussianNumber ||
-           value instanceof LogNormalNumber ||
-           value instanceof UniformNumber ||
-           value instanceof ConfidenceIntervalNumber ||
+    return value instanceof ConfidenceIntervalNumber ||
            value instanceof SampledDistribution;
   }
 
@@ -356,16 +347,13 @@ export class ArithmeticHelper {
    */
   private getSamplesFromValue(value: ExtendedNumber): number[] {
     if (value instanceof ConfidenceIntervalNumber) {
-      // CI is our primary uncertain type - use its toSamples method
+      // CI is our only uncertain input type - use its toSamples method
       return value.toSamples(this.config);
-    } else if (value instanceof GaussianNumber || 
-        value instanceof LogNormalNumber ||
-        value instanceof UniformNumber ||
-        value instanceof SampledDistribution) {
+    } else if (value instanceof SampledDistribution) {
+      // SampledDistribution from previous calculations
       return value.getSamples();
     } else {
       // For scalar values, create an array with the same sample size as configured
-      // Use the same sample size as other distribution types for consistency
       const sampleSize = this.config.sampleSize;
       const scalarValue = getRawValue(value);
       return Array(sampleSize).fill(scalarValue);
@@ -777,8 +765,6 @@ export class ArithmeticHelper {
         return new TimeNumber(value, format);
       case NumberType.NUMBER_PERCENT:
         return new PercentNumber(value, format);
-      case NumberType.NUMBER_GAUSSIAN:
-        return new GaussianNumber(value, 0, this.config);
       case NumberType.NUMBER_SAMPLED:
         // For sampled distributions, create a new one with a single sample
         return new SampledDistribution([value], this.config);
@@ -892,12 +878,8 @@ export class ArithmeticHelper {
    */
   private getMeanValue(value: InternalNoErrorScalarValue): number {
     if (value instanceof ConfidenceIntervalNumber) {
-      return (value.lower + value.upper) / 2;
-    } else if (value instanceof GaussianNumber) {
-      return value.mean;
-    } else if (value instanceof LogNormalNumber) {
-      return value.getMean();
-    } else if (value instanceof UniformNumber) {
+      return value.getMedian(); // Use the median (which is stored in .val)
+    } else if (value instanceof SampledDistribution) {
       return value.getMean();
     } else if (typeof value === 'number') {
       return value;
@@ -1230,14 +1212,8 @@ function inferExtendedNumberTypeAdditive(
 
   // If either operand is any distribution type, the result should be a SampledDistribution
   if (
-    leftType === NumberType.NUMBER_GAUSSIAN ||
-    rightType === NumberType.NUMBER_GAUSSIAN ||
     leftType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
     rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
-    leftType === NumberType.NUMBER_LOGNORMAL ||
-    rightType === NumberType.NUMBER_LOGNORMAL ||
-    leftType === NumberType.NUMBER_UNIFORM ||
-    rightType === NumberType.NUMBER_UNIFORM ||
     leftType === NumberType.NUMBER_SAMPLED ||
     rightType === NumberType.NUMBER_SAMPLED
   ) {
@@ -1292,14 +1268,12 @@ function inferExtendedNumberTypeMultiplicative(
   let { type: rightType, format: rightFormat } =
     getTypeFormatOfExtendedNumber(rightArg);
 
-  // If either operand is a Gaussian number, SampledDistribution, or ConfidenceInterval, the result should be a SampledDistribution
+  // If either operand is a ConfidenceInterval or SampledDistribution, the result should be a SampledDistribution
   if (
-    leftType === NumberType.NUMBER_GAUSSIAN ||
-    rightType === NumberType.NUMBER_GAUSSIAN ||
-    leftType === NumberType.NUMBER_SAMPLED ||
-    rightType === NumberType.NUMBER_SAMPLED ||
     leftType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
-    rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL
+    rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
+    leftType === NumberType.NUMBER_SAMPLED ||
+    rightType === NumberType.NUMBER_SAMPLED
   ) {
     return { type: NumberType.NUMBER_SAMPLED };
   }

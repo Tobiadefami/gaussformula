@@ -5,9 +5,6 @@
 
 import {
   ConfidenceIntervalNumber,
-  GaussianNumber,
-  LogNormalNumber, 
-  UniformNumber,
   SampledDistribution,
 } from "./interpreter/InterpreterValue";
 
@@ -50,44 +47,35 @@ export class NumberLiteralHelper {
     input: string
   ): Maybe<
     | number
-    | GaussianNumber
     | SampledDistribution
     | ConfidenceIntervalNumber
-    | LogNormalNumber
-    | UniformNumber
   > {
 
-    // Log-normal literal
-    const logMatch = this.logNormalPattern.exec(input);
-    if (logMatch) {
-      const mu = Number(logMatch[1]);
-      const sigma2 = Number(logMatch[2]);
-      if (!isNaN(mu) && !isNaN(sigma2)) {
-        return new LogNormalNumber(mu, sigma2, this.config);
+    // Confidence interval literal - support multiple formats
+    // Format 1: CI[20, 50]
+    let confidenceIntervalMatch = this.confidenceIntervalPattern.exec(input);
+    
+    // Format 2: [20, 50] 
+    if (!confidenceIntervalMatch) {
+      const rangePattern = /^\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]$/;
+      confidenceIntervalMatch = rangePattern.exec(input);
+    }
+    
+    // Format 3: 20 to 50 (range style)
+    if (!confidenceIntervalMatch) {
+      const rangeToPattern = /^([+-]?\d*\.?\d+)\s+to\s+([+-]?\d*\.?\d+)$/i;
+      confidenceIntervalMatch = rangeToPattern.exec(input);
+    }
+    
+    if (confidenceIntervalMatch) {
+      const lower = Number(confidenceIntervalMatch[1]);
+      const upper = Number(confidenceIntervalMatch[2]);
+      if (!isNaN(lower) && !isNaN(upper) && lower <= upper) {
+        return new ConfidenceIntervalNumber(lower, upper, 90); // Default to 90%
       }
     }
 
-    // Uniform literal
-    const uniMatch = this.uniformPattern.exec(input);
-    if (uniMatch) {
-      const a = Number(uniMatch[1]);
-      const b = Number(uniMatch[2]);
-      if (!isNaN(a) && !isNaN(b)) {
-        return new UniformNumber(a, b, this.config);
-      }
-    }
-
-    // Gaussian literal
-    const gaussianMatch = this.gaussianPattern.exec(input);
-    if (gaussianMatch) {
-      const mean = Number(gaussianMatch[1]);
-      const variance = Number(gaussianMatch[2]);
-      if (!isNaN(mean) && !isNaN(variance)) {
-        return new GaussianNumber(mean, variance, this.config);
-      }
-    }
-
-    // Sampled distribution literal
+    // Sampled distribution literal (for results from calculations)
     const sampledMatch = this.sampledPattern.exec(input);
     if (sampledMatch) {
       const mean = Number(sampledMatch[1]);
@@ -98,16 +86,6 @@ export class NumberLiteralHelper {
           variance,
           this.config
         );
-      }
-    }
-
-    // Confidence interval literal
-    const confidenceIntervalMatch = this.confidenceIntervalPattern.exec(input);
-    if (confidenceIntervalMatch) {
-      const lower = Number(confidenceIntervalMatch[1]);
-      const upper = Number(confidenceIntervalMatch[2]);
-      if (!isNaN(lower) && !isNaN(upper) && lower <= upper) {
-        return new ConfidenceIntervalNumber(lower, upper, 95);
       }
     }
 

@@ -53,9 +53,6 @@ import {
   buildEmptyArgAst,
   buildEqualsOpAst,
   buildErrorWithRawInputAst,
-  buildGaussianNumberAst,
-  buildLogNormalNumberAst,
-  buildUniformNumberAst,
   buildGreaterThanOpAst,
   buildGreaterThanOrEqualOpAst,
   buildLessThanOpAst,
@@ -84,9 +81,6 @@ import {
   DateNumber,
   DateTimeNumber,
   ExtendedNumber,
-  GaussianNumber,
-  LogNormalNumber,
-  UniformNumber,
   PercentNumber,
   TimeNumber,
   cloneNumber,
@@ -527,40 +521,22 @@ export class FormulaParser extends EmbeddedActionsParser {
       {
         ALT: () => {
           const gaussianToken = this.CONSUME(this.lexerConfig.GaussianLiteral) as ExtendedToken
-          const match = /N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/.exec(gaussianToken.image)
-          if (match) {
-            const mean = this.numericStringToNumber(match[1])
-            const variance = this.numericStringToNumber(match[2])
-            return buildGaussianNumberAst(new GaussianNumber(mean, variance), gaussianToken.leadingWhitespace)
-          } else {
-            return buildParsingErrorAst()
-          }
+          // N() syntax no longer supported - use [lower, upper] format instead
+          return buildParsingErrorAst()
         }
       },
       {
         ALT: () => {
           const logNormalToken = this.CONSUME(this.lexerConfig.LogNormalLiteral) as ExtendedToken
-          const match = /LN\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/.exec(logNormalToken.image)
-          if (match) {
-            const mu = this.numericStringToNumber(match[1])
-            const sigma2 = this.numericStringToNumber(match[2])
-            return buildLogNormalNumberAst(new LogNormalNumber(mu, sigma2), logNormalToken.leadingWhitespace)
-          } else {
-            return buildParsingErrorAst()
-          }
+          // LN() syntax no longer supported - use [lower, upper] format instead
+          return buildParsingErrorAst()
         }
       },
       {
         ALT: () => {
           const uniformToken = this.CONSUME(this.lexerConfig.UniformLiteral) as ExtendedToken
-          const match = /U\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/.exec(uniformToken.image)
-          if (match) {
-            const a = this.numericStringToNumber(match[1])
-            const b = this.numericStringToNumber(match[2])
-            return buildUniformNumberAst(new UniformNumber(a, b), uniformToken.leadingWhitespace)
-          } else {
-            return buildParsingErrorAst()
-          }
+          // U() syntax no longer supported - use [lower, upper] format instead
+          return buildParsingErrorAst()
         }
       },
       {

@@ -68,14 +68,10 @@ export abstract class Transformer implements FormulaTransformer {
       case AstNodeType.NUMBER:
       case AstNodeType.NAMED_EXPRESSION:
       case AstNodeType.ERROR_WITH_RAW_INPUT:
-      case AstNodeType.STRING:
-      case AstNodeType.GAUSSIAN_NUMBER: {
+      case AstNodeType.STRING: {
         return ast
       }
-      case AstNodeType.LOG_NORMAL_NUMBER:
-        return ast
-      case AstNodeType.UNIFORM_NUMBER:
-        return ast
+      // Removed GAUSSIAN_NUMBER, LOG_NORMAL_NUMBER, UNIFORM_NUMBER - no longer supported
       case AstNodeType.PERCENT_OP:
       case AstNodeType.MINUS_UNARY_OP:
       case AstNodeType.PLUS_UNARY_OP: {
