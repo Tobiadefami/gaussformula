@@ -248,7 +248,7 @@ export class ConfidenceIntervalNumber extends RichNumber {
   constructor(
     lower: number,
     upper: number,
-    confidenceLevel: number = 90, // Default to 90%
+    confidenceLevel: number = 95, // Default to 95%
     options?: {
       format?: string;
       interpretation?: CIInterpretation;
@@ -282,21 +282,7 @@ export class ConfidenceIntervalNumber extends RichNumber {
    * Auto-detect the best interpretation based on range characteristics
    */
   private detectInterpretation(lower: number, upper: number): CIInterpretation {
-    // If either bound is negative or zero, use normal
-    if (lower <= 0) {
-      return 'normal';
-    }
-    
-    // For positive ranges, check the ratio to decide between normal and lognormal
-    const ratio = upper / lower;
-    
-    // If the range spans more than 2x (e.g., [20, 50] = 2.5x), use lognormal
-    // This captures multiplicative/proportional uncertainty better
-    if (ratio >= 2) {
-      return 'lognormal';
-    }
-    
-    // For narrow positive ranges, use normal
+    // Always default to normal for consistency and user clarity
     return 'normal';
   }
 
