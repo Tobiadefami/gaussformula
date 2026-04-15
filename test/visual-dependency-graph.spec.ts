@@ -4,9 +4,11 @@ describe('HyperFormula.getVisualDependencyGraph', () => {
   it('returns whole-graph cell nodes and directed cell edges for numeric dependencies', () => {
     const engine = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' })
     engine.addSheet('Sheet1')
-    engine.setSheetContent(0, [['1', '2', '=A1+B1', '=C1*2']])
+    engine.setSheetContent(0, [['1', '2', '=A1+B1', '=C1*2', '5']])
 
-    expect((engine as any).getVisualDependencyGraph()).toEqual({
+    const graph = (engine as any).getVisualDependencyGraph()
+
+    expect(graph).toEqual({
       nodes: expect.arrayContaining([
         expect.objectContaining({
           id: '0:0:0',
@@ -51,6 +53,8 @@ describe('HyperFormula.getVisualDependencyGraph', () => {
         { sourceId: '0:0:2', targetId: '0:0:3' },
       ]),
     })
+
+    expect(graph.nodes.some((node: { address: string }) => node.address === 'E1')).toBe(false)
   })
 
   it('returns structured confidence interval and sampled distribution summaries', () => {

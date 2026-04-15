@@ -855,8 +855,15 @@ export class HyperFormula implements TypedEmitter {
       }
     }
 
+    const participatingNodeIds = new Set<string>();
+    for (const edgeKey of edgesByKey) {
+      const [sourceId, targetId] = edgeKey.split("->");
+      participatingNodeIds.add(sourceId);
+      participatingNodeIds.add(targetId);
+    }
+
     return {
-      nodes: [...nodesById.values()],
+      nodes: [...nodesById.values()].filter((node) => participatingNodeIds.has(node.id)),
       edges: [...edgesByKey].map((edgeKey) => {
         const [sourceId, targetId] = edgeKey.split("->");
         return { sourceId, targetId };
