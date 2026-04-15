@@ -1,12 +1,11 @@
 import { HyperFormula } from '../src'
+import type { VisualDependencyGraph } from '../src'
 
 describe('HyperFormula.getVisualDependencyGraph', () => {
   it('returns whole-graph cell nodes and directed cell edges for numeric dependencies', () => {
-    const engine = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' })
-    engine.addSheet('Sheet1')
-    engine.setSheetContent(0, [['1', '2', '=A1+B1', '=C1*2', '5']])
+    const engine = HyperFormula.buildFromArray([['1', '2', '=A1+B1', '=C1*2', '5']])
 
-    const graph = (engine as any).getVisualDependencyGraph()
+    const graph: VisualDependencyGraph = engine.getVisualDependencyGraph()
 
     expect(graph).toEqual({
       nodes: expect.arrayContaining([
@@ -54,15 +53,15 @@ describe('HyperFormula.getVisualDependencyGraph', () => {
       ]),
     })
 
-    expect(graph.nodes.some((node: { address: string }) => node.address === 'E1')).toBe(false)
+    expect(graph.nodes.some((node) => node.address === 'E1')).toBe(false)
   })
 
   it('returns structured confidence interval and sampled distribution summaries', () => {
-    const engine = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3', sampleSize: 1000 })
-    engine.addSheet('Sheet1')
-    engine.setSheetContent(0, [['CI[10, 20]', '=A1*2']])
+    const engine = HyperFormula.buildFromArray([['CI[10, 20]', '=A1*2']], {
+      sampleSize: 1000,
+    })
 
-    const graph = (engine as any).getVisualDependencyGraph()
+    const graph: VisualDependencyGraph = engine.getVisualDependencyGraph()
 
     expect(graph.nodes).toEqual(
       expect.arrayContaining([
@@ -86,5 +85,18 @@ describe('HyperFormula.getVisualDependencyGraph', () => {
         }),
       ]),
     )
+  })
+
+  it('does not attribute spill aliases as separate dependency sources', () => {
+    const engine = HyperFormula.buildFromArray([['={1,2}', undefined, '=B1']])
+
+    const graph = engine.getVisualDependencyGraph()
+
+    expect(graph.nodes.map((node) => node.address)).toEqual(
+      expect.arrayContaining(['A1', 'C1']),
+    )
+    expect(graph.nodes.map((node) => node.address)).not.toContain('B1')
+    expect(graph.edges).toContainEqual({ sourceId: '0:0:0', targetId: '0:0:2' })
+    expect(graph.edges).not.toContainEqual({ sourceId: '0:0:1', targetId: '0:0:2' })
   })
 })

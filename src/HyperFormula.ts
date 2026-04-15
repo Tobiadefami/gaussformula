@@ -794,64 +794,67 @@ export class HyperFormula implements TypedEmitter {
    * @category Helpers
    */
   public getVisualDependencyGraph(): VisualDependencyGraph {
-    const addressesByVertex = new Map<Vertex, SimpleCellAddress[]>();
-    const includedVertices = new Set<Vertex>();
+    const verticesWithCells = new Set<Vertex>();
+    const canonicalAddressByVertex = new Map<Vertex, SimpleCellAddress>();
 
     for (const [address, vertex] of this.addressMapping.entries()) {
       if (vertex === undefined || !this.graph.hasNode(vertex)) {
         continue;
       }
 
-      includedVertices.add(vertex);
-      const addresses = addressesByVertex.get(vertex);
-      if (addresses === undefined) {
-        addressesByVertex.set(vertex, [address]);
-      } else {
-        addresses.push(address);
+      verticesWithCells.add(vertex);
+      if (!canonicalAddressByVertex.has(vertex)) {
+        canonicalAddressByVertex.set(
+          vertex,
+          this.getVisualDependencyAddress(vertex, address)
+        );
       }
     }
 
     const nodesById = new Map<string, VisualDependencyNode>();
     const edgesByKey = new Set<string>();
 
-    for (const [sourceVertex, sourceAddresses] of addressesByVertex.entries()) {
-      for (const sourceAddress of sourceAddresses) {
-        const sourceNode = this.buildVisualDependencyNode(sourceAddress);
-        if (sourceNode === undefined) {
+    for (const sourceVertex of verticesWithCells) {
+      const sourceAddress = canonicalAddressByVertex.get(sourceVertex);
+      if (sourceAddress === undefined) {
+        continue;
+      }
+
+      const sourceNode = this.buildVisualDependencyNode(sourceAddress);
+      if (sourceNode === undefined) {
+        continue;
+      }
+
+      nodesById.set(sourceNode.id, sourceNode);
+
+      const visited = new Set<Vertex>([sourceVertex]);
+      const pending = [...this.graph.adjacentNodes(sourceVertex)];
+
+      while (pending.length > 0) {
+        const current = pending.pop();
+        if (current === undefined || visited.has(current)) {
           continue;
         }
 
-        nodesById.set(sourceNode.id, sourceNode);
+        visited.add(current);
 
-        const visited = new Set<Vertex>([sourceVertex]);
-        const pending = [...this.graph.adjacentNodes(sourceVertex)];
-
-        while (pending.length > 0) {
-          const current = pending.pop();
-          if (current === undefined || visited.has(current)) {
+        if (verticesWithCells.has(current)) {
+          const targetAddress = canonicalAddressByVertex.get(current);
+          if (targetAddress === undefined) {
             continue;
           }
 
-          visited.add(current);
-
-          if (includedVertices.has(current)) {
-            const targetAddresses = addressesByVertex.get(current) ?? [];
-            for (const targetAddress of targetAddresses) {
-              const targetNode = this.buildVisualDependencyNode(targetAddress);
-              if (targetNode === undefined) {
-                continue;
-              }
-
-              nodesById.set(targetNode.id, targetNode);
-
-              const edgeKey = `${sourceNode.id}->${targetNode.id}`;
-              edgesByKey.add(edgeKey);
-            }
+          const targetNode = this.buildVisualDependencyNode(targetAddress);
+          if (targetNode === undefined) {
             continue;
           }
 
-          pending.push(...this.graph.adjacentNodes(current));
+          nodesById.set(targetNode.id, targetNode);
+          edgesByKey.add(`${sourceNode.id}->${targetNode.id}`);
+          continue;
         }
+
+        pending.push(...this.graph.adjacentNodes(current));
       }
     }
 
@@ -3830,6 +3833,17 @@ export class HyperFormula implements TypedEmitter {
     }
 
     return undefined;
+  }
+
+  private getVisualDependencyAddress(
+    vertex: Vertex,
+    fallbackAddress: SimpleCellAddress
+  ): SimpleCellAddress {
+    if ("getAddress" in vertex && typeof vertex.getAddress === "function") {
+      return vertex.getAddress(this.lazilyTransformingAstService);
+    }
+
+    return fallbackAddress;
   }
 
   /**
