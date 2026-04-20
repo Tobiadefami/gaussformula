@@ -173,16 +173,20 @@ export function getTypeFormatOfExtendedNumber(
   }
 }
 
-export function generateNormalSamples(
+function sampleStandardNormalBoxMuller(): number {
+  const u1 = Math.random();
+  const u2 = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+}
+
+export function sampleNormalDistribution(
   mean: number,
   variance: number,
   sampleSize: number
 ): number[] {
   const std = Math.sqrt(variance);
   return Array.from({ length: sampleSize }, () => {
-    const u1 = Math.random();
-    const u2 = Math.random();
-    const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    const z0 = sampleStandardNormalBoxMuller();
     return mean + std * z0;
   });
 }
@@ -192,19 +196,19 @@ export function generateNormalSamples(
  *
  * X ~ LogNormal(μ, σ²) ⇔ ln X ~ N(μ, σ²)
  */
-export function generateLogNormalSamples(
+export function sampleLogNormalDistribution(
   mu: number,
-  sigma2: number,
+  variance: number,
   sampleSize: number
 ): number[] {
-  const normalSamples = generateNormalSamples(mu, sigma2, sampleSize);
+  const normalSamples = sampleNormalDistribution(mu, variance, sampleSize);
   return normalSamples.map((x) => Math.exp(x));
 }
 
 /**
  * Generate samples from a continuous uniform distribution U(a,b).
  */
-export function generateUniformSamples(
+export function sampleUniformDistribution(
   a: number,
   b: number,
   sampleSize: number
@@ -351,12 +355,12 @@ export class ConfidenceIntervalNumber extends RichNumber {
         const mean = (this.lower + this.upper) / 2;
         const std = (this.upper - this.lower) / (2 * zScore);
         const variance = std * std;
-        return generateNormalSamples(mean, variance, sampleSize);
+        return sampleNormalDistribution(mean, variance, sampleSize);
       }
       
       case 'uniform': {
         // Hard bounds: sample uniformly on [lower, upper]
-        return generateUniformSamples(this.lower, this.upper, sampleSize);
+        return sampleUniformDistribution(this.lower, this.upper, sampleSize);
       }
       
       case 'lognormal': {
@@ -378,9 +382,9 @@ export class ConfidenceIntervalNumber extends RichNumber {
         
         const mu = (lnLower + lnUpper) / 2;
         const sigma = (lnUpper - lnLower) / 3.29; // 3.29 = 2 * 1.645
-        const sigma2 = sigma * sigma;
+        const variance = sigma * sigma;
         
-        return generateLogNormalSamples(mu, sigma2, sampleSize);
+        return sampleLogNormalDistribution(mu, variance, sampleSize);
       }
       
       default:
@@ -449,7 +453,7 @@ export class SampledDistribution extends RichNumber {
     variance: number,
     config?: Config
   ): SampledDistribution {
-    const samples = generateNormalSamples(
+    const samples = sampleNormalDistribution(
       mean,
       variance,
       config?.sampleSize ?? Config.defaultConfig.sampleSize
@@ -457,4 +461,3 @@ export class SampledDistribution extends RichNumber {
     return new SampledDistribution(samples, config);
   }
 }
-

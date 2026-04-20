@@ -304,7 +304,7 @@ export interface ConfigParams {
    */
   stringifyDuration: (time: SimpleTime, timeFormat: string) => Maybe<string>;
   /**
-   * Sets the number of samples to use for Box-Muller simulation in Gaussian and Sampled Distributions
+   * Sets the number of samples used for Monte Carlo uncertainty propagation.
    * Higher values provide more accurrate results but use more memory
    * @default 1000
    * @category Engine

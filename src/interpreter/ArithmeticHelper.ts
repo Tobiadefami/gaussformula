@@ -65,10 +65,10 @@ export class ArithmeticHelper {
 
   /**
    * ========================================================================
-   * Near-Zero Value Handling for Gaussian and Sampled Distribution Arithmetic
+   * Near-Zero Value Handling for Uncertainty Arithmetic
    * ========================================================================
    *
-   * When working with sampled distributions (Gaussian and SampledDistribution),
+   * When working with confidence intervals and sampled distributions,
    * some samples may be very close to zero but not exactly zero. This can cause
    * numerical instability issues:
    *
