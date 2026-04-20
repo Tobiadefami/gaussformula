@@ -81,6 +81,10 @@ import { ColumnSearchStrategy } from "./Lookup/SearchStrategy";
 import { ConfigParams } from "./ConfigParams";
 import { Evaluator } from "./Evaluator";
 import { FormatInfo } from "./interpreter/InterpreterValue";
+import {
+  ConfidenceIntervalNumber,
+  SampledDistribution,
+} from "./interpreter/InterpreterValue";
 import { FunctionPluginDefinition } from "./interpreter";
 import { LazilyTransformingAstService } from "./LazilyTransformingAstService";
 import { LicenseKeyValidityState } from "./helpers/licenseKeyValidator";
@@ -104,6 +108,41 @@ import { validateArgToType } from "./ArgumentSanitization";
  * corresponding lifecycle events. The events are marked accordingly, as well as thrown
  * errors, so they can be correctly handled.
  */
+export type VisualDependencyNodeValue =
+  | { kind: "scalar"; value: number }
+  | {
+      kind: "confidence_interval";
+      lower: number;
+      upper: number;
+      confidenceLevel: number;
+      interpretation: "normal" | "uniform" | "lognormal" | "auto";
+    }
+  | {
+      kind: "sampled_distribution";
+      mean: number;
+      variance: number;
+    };
+
+export interface VisualDependencyNode {
+  id: string;
+  sheet: number;
+  row: number;
+  col: number;
+  address: string;
+  formula: string | undefined;
+  value: VisualDependencyNodeValue;
+}
+
+export interface VisualDependencyEdge {
+  sourceId: string;
+  targetId: string;
+}
+
+export interface VisualDependencyGraph {
+  nodes: VisualDependencyNode[];
+  edges: VisualDependencyEdge[];
+}
+
 export class HyperFormula implements TypedEmitter {
   /**
    * Version of the HyperFormula.
@@ -747,6 +786,92 @@ export class HyperFormula implements TypedEmitter {
       throw new ExpectedValueOfTypeError("SimpleCellAddress", "cellAddress");
     }
     return this._serialization.getCellFormula(cellAddress);
+  }
+
+  /**
+   * Returns a normalized, cell-level dependency graph for edge-participating numeric cells.
+   *
+   * @category Helpers
+   */
+  public getVisualDependencyGraph(): VisualDependencyGraph {
+    const verticesWithCells = new Set<Vertex>();
+    const canonicalAddressByVertex = new Map<Vertex, SimpleCellAddress>();
+
+    for (const [address, vertex] of this.addressMapping.entries()) {
+      if (vertex === undefined || !this.graph.hasNode(vertex)) {
+        continue;
+      }
+
+      verticesWithCells.add(vertex);
+      if (!canonicalAddressByVertex.has(vertex)) {
+        canonicalAddressByVertex.set(
+          vertex,
+          this.getVisualDependencyAddress(vertex, address)
+        );
+      }
+    }
+
+    const nodesById = new Map<string, VisualDependencyNode>();
+    const edgesByKey = new Set<string>();
+
+    for (const sourceVertex of verticesWithCells) {
+      const sourceAddress = canonicalAddressByVertex.get(sourceVertex);
+      if (sourceAddress === undefined) {
+        continue;
+      }
+
+      const sourceNode = this.buildVisualDependencyNode(sourceAddress);
+      if (sourceNode === undefined) {
+        continue;
+      }
+
+      nodesById.set(sourceNode.id, sourceNode);
+
+      const visited = new Set<Vertex>([sourceVertex]);
+      const pending = [...this.graph.adjacentNodes(sourceVertex)];
+
+      while (pending.length > 0) {
+        const current = pending.pop();
+        if (current === undefined || visited.has(current)) {
+          continue;
+        }
+
+        visited.add(current);
+
+        if (verticesWithCells.has(current)) {
+          const targetAddress = canonicalAddressByVertex.get(current);
+          if (targetAddress === undefined) {
+            continue;
+          }
+
+          const targetNode = this.buildVisualDependencyNode(targetAddress);
+          if (targetNode === undefined) {
+            continue;
+          }
+
+          nodesById.set(targetNode.id, targetNode);
+          edgesByKey.add(`${sourceNode.id}->${targetNode.id}`);
+          continue;
+        }
+
+        pending.push(...this.graph.adjacentNodes(current));
+      }
+    }
+
+    const participatingNodeIds = new Set<string>();
+    for (const edgeKey of edgesByKey) {
+      const [sourceId, targetId] = edgeKey.split("->");
+      participatingNodeIds.add(sourceId);
+      participatingNodeIds.add(targetId);
+    }
+
+    return {
+      nodes: [...nodesById.values()].filter((node) => participatingNodeIds.has(node.id)),
+      edges: [...edgesByKey].map((edgeKey) => {
+        const [sourceId, targetId] = edgeKey.split("->");
+        return { sourceId, targetId };
+      }),
+    };
   }
 
   /**
@@ -3649,6 +3774,76 @@ export class HyperFormula implements TypedEmitter {
     this.ensureEvaluationIsNotSuspended();
     const value = this.dependencyGraph.getCellValue(cellAddress);
     return getCellValueFormat(value);
+  }
+
+  private buildVisualDependencyNode(
+    address: SimpleCellAddress
+  ): VisualDependencyNode | undefined {
+    const value = this.getCellValue(address);
+    const normalizedValue = this.normalizeVisualDependencyValue(value);
+
+    if (normalizedValue === undefined) {
+      return undefined;
+    }
+
+    const addressString = simpleCellAddressToString(
+      this.sheetMapping.fetchDisplayName,
+      address,
+      address.sheet
+    );
+
+    if (addressString === undefined) {
+      return undefined;
+    }
+
+    return {
+      id: `${address.sheet}:${address.row}:${address.col}`,
+      sheet: address.sheet,
+      row: address.row,
+      col: address.col,
+      address: addressString,
+      formula: this.getCellFormula(address),
+      value: normalizedValue,
+    };
+  }
+
+  private normalizeVisualDependencyValue(
+    value: CellValue
+  ): VisualDependencyNodeValue | undefined {
+    if (typeof value === "number" && !Number.isNaN(value)) {
+      return { kind: "scalar", value };
+    }
+
+    if (value instanceof ConfidenceIntervalNumber) {
+      return {
+        kind: "confidence_interval",
+        lower: value.getLower(),
+        upper: value.getUpper(),
+        confidenceLevel: value.getConfidenceLevel(),
+        interpretation: value.interpretation,
+      };
+    }
+
+    if (value instanceof SampledDistribution) {
+      return {
+        kind: "sampled_distribution",
+        mean: value.getMean(),
+        variance: value.getVariance(),
+      };
+    }
+
+    return undefined;
+  }
+
+  private getVisualDependencyAddress(
+    vertex: Vertex,
+    fallbackAddress: SimpleCellAddress
+  ): SimpleCellAddress {
+    if ("getAddress" in vertex && typeof vertex.getAddress === "function") {
+      return vertex.getAddress(this.lazilyTransformingAstService);
+    }
+
+    return fallbackAddress;
   }
 
   /**

@@ -119,10 +119,7 @@ for (const pluginName of Object.getOwnPropertyNames(plugins)) {
 
 export default HyperFormulaNS
 
-export {
-  AlwaysDense,
-  AlwaysSparse,
-  DenseSparseChooseBasedOnThreshold,
+export type {
   CellValue,
   NoErrorCellValue,
   ConfigParams,
@@ -140,6 +137,15 @@ export {
   FunctionArgument,
   NamedExpression,
   NamedExpressionOptions,
+  ImplementedFunctions,
+  FunctionMetadata,
+  SerializedNamedExpression,
+}
+
+export {
+  AlwaysDense,
+  AlwaysSparse,
+  DenseSparseChooseBasedOnThreshold,
   HyperFormula,
   CellType,
   CellValueType,
@@ -156,8 +162,6 @@ export {
   ExpectedValueOfTypeError,
   ArraySize,
   FunctionPlugin,
-  ImplementedFunctions,
-  FunctionMetadata,
   FunctionArgumentType,
   FunctionPluginValidationError,
   InvalidAddressError,
@@ -183,5 +187,11 @@ export {
   SourceLocationHasArrayError,
   TargetLocationHasArrayError,
   UnableToParseError,
-  SerializedNamedExpression,
 }
+
+export type {
+  VisualDependencyNodeValue,
+  VisualDependencyNode,
+  VisualDependencyEdge,
+  VisualDependencyGraph,
+} from "./HyperFormula";
