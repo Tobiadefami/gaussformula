@@ -45,7 +45,7 @@ import {
   UnableToParseError
 } from './errors'
 import {ExportedCellChange, ExportedChange, ExportedNamedExpressionChange} from './Exporter'
-import {HyperFormula} from './HyperFormula'
+import {HyperFormula as GaussFormula} from './HyperFormula'
 import {RawTranslationPackage} from './i18n'
 import enGB from './i18n/languages/enGB'
 import {FunctionArgument, FunctionPlugin, FunctionPluginDefinition, FunctionArgumentType, ImplementedFunctions, FunctionMetadata, EmptyValue} from './interpreter'
@@ -60,8 +60,9 @@ import {ConfigParams} from './ConfigParams'
 /**
  * Aggregate class for default export
  */
-class HyperFormulaNS extends HyperFormula {
-  public static HyperFormula = HyperFormula
+class GaussFormulaNS extends GaussFormula {
+  public static GaussFormula = GaussFormula
+  public static HyperFormula = GaussFormula
   public static ErrorType = ErrorType
   public static CellError = CellError
   public static CellType = CellType
@@ -106,18 +107,18 @@ class HyperFormulaNS extends HyperFormula {
 
 const defaultLanguage = Config.defaultConfig.language
 
-HyperFormula.registerLanguage(defaultLanguage, enGB)
-HyperFormula.languages[enGB.langCode] = enGB
+GaussFormula.registerLanguage(defaultLanguage, enGB)
+GaussFormula.languages[enGB.langCode] = enGB
 
 for (const pluginName of Object.getOwnPropertyNames(plugins)) {
   if (!pluginName.startsWith('_')) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    HyperFormula.registerFunctionPlugin(plugins[pluginName])
+    GaussFormula.registerFunctionPlugin(plugins[pluginName])
   }
 }
 
-export default HyperFormulaNS
+export default GaussFormulaNS
 
 export type {
   CellValue,
@@ -146,7 +147,8 @@ export {
   AlwaysDense,
   AlwaysSparse,
   DenseSparseChooseBasedOnThreshold,
-  HyperFormula,
+  GaussFormula,
+  GaussFormula as HyperFormula,
   CellType,
   CellValueType,
   CellValueDetailedType,
@@ -194,4 +196,4 @@ export type {
   VisualDependencyNode,
   VisualDependencyEdge,
   VisualDependencyGraph,
-} from "./HyperFormula";
+} from './HyperFormula'
