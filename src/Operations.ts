@@ -41,7 +41,8 @@ import {
   SourceLocationHasArrayError,
   TargetLocationHasArrayError
 } from './errors'
-import {EmptyValue, getRawValue} from './interpreter/InterpreterValue'
+import {ConfidenceIntervalNumber, EmptyValue, getRawValue} from './interpreter/InterpreterValue'
+import {samplingIdentityFromAddress} from './interpreter/SamplingIdentity'
 import {LazilyTransformingAstService} from './LazilyTransformingAstService'
 import {ColumnSearchStrategy} from './Lookup/SearchStrategy'
 import {
@@ -622,6 +623,7 @@ export class Operations {
   }
 
   public setValueToCell(value: RawAndParsedValue, address: SimpleCellAddress) {
+    value = attachSamplingIdentity(value, address)
     const oldValue = this.dependencyGraph.getCellValue(address)
     const arrayChanges = this.dependencyGraph.setValueToCell(address, value)
     this.columnSearch.change(getRawValue(oldValue), getRawValue(value.parsedValue), address)
@@ -922,6 +924,20 @@ export class Operations {
       }
     }
     return this.dependencyGraph.fetchCellOrCreateEmpty(expression.address).vertex
+  }
+}
+
+function attachSamplingIdentity(
+  value: RawAndParsedValue,
+  address: SimpleCellAddress
+): RawAndParsedValue {
+  if (!(value.parsedValue instanceof ConfidenceIntervalNumber)) {
+    return value
+  }
+
+  return {
+    ...value,
+    parsedValue: value.parsedValue.withSamplingIdentity(samplingIdentityFromAddress(address)),
   }
 }
 
