@@ -20,7 +20,7 @@ jobs:
       matrix:
         node-version: [ 20, 22 ]
         os: [ ubuntu-latest, windows-latest, macos-latest ]
-        install-command: [ i, ci ]
+        install-command: [ install, install --frozen-lockfile ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@722adc63f1aa60a57ec37892e133b1d319cae598 # https://github.com/actions/checkout/releases/tag/v2.0.0
@@ -30,10 +30,15 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.15.9 --activate
+
       - name: Install dependencies
         run: |
-          npm ${{ matrix.install-command }}
+          pnpm ${{ matrix.install-command }}
 
       - name: Build
         run: |
-          npm run bundle-all
+          pnpm run bundle-all

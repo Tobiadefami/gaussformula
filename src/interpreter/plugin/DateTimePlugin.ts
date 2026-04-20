@@ -238,7 +238,6 @@ export class DateTimePlugin extends FunctionPlugin implements FunctionPluginType
    * Corresponds to DATE(year, month, day)
    *
    * Converts a provided year, month and day into date
-   *
    * @param ast
    * @param state
    */
@@ -308,7 +307,6 @@ export class DateTimePlugin extends FunctionPlugin implements FunctionPluginType
    * Corresponds to MONTH(date)
    *
    * Returns the month of the year specified by a given date
-   *
    * @param ast
    * @param state
    */
@@ -322,7 +320,6 @@ export class DateTimePlugin extends FunctionPlugin implements FunctionPluginType
    * Corresponds to YEAR(date)
    *
    * Returns the year specified by a given date
-   *
    * @param ast
    * @param state
    */
@@ -354,7 +351,6 @@ export class DateTimePlugin extends FunctionPlugin implements FunctionPluginType
    * Corresponds to TEXT(number, format)
    *
    * Tries to convert number to specified date format.
-   *
    * @param ast
    * @param state
    */

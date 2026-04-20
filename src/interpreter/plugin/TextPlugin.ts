@@ -148,7 +148,6 @@ export class TextPlugin extends FunctionPlugin implements FunctionPluginTypechec
    * Corresponds to CONCATENATE(value1, [value2, ...])
    *
    * Concatenates provided arguments to one string.
-   *
    * @param ast
    * @param state
    */
@@ -162,7 +161,6 @@ export class TextPlugin extends FunctionPlugin implements FunctionPluginTypechec
    * Corresponds to SPLIT(string, index)
    *
    * Splits provided string using space separator and returns chunk at zero-based position specified by second argument
-   *
    * @param ast
    * @param state
    */

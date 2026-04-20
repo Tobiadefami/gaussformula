@@ -73,7 +73,6 @@ export class CellAddress implements AddressWithColumn, AddressWithRow {
 
   /**
    * Converts R0C0 representation of cell address to simple object representation.
-   *
    * @param baseAddress - base address for R0C0 shifts
    */
   public toSimpleCellAddress(baseAddress: SimpleCellAddress): SimpleCellAddress {

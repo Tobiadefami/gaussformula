@@ -31,7 +31,6 @@ const outputLog = false
 
 /**
  * random int in range between min and max
- *
  * @param min
  * @param max
  */
@@ -123,7 +122,6 @@ function rectangleFromCorner(pts: Pts, sideX: number, sideY: number): Rectangle 
 
 /**
  * all addresses from a rectangle
- *
  * @param rect
  */
 function allPts(rect: Rectangle): Pts[] {
@@ -138,7 +136,6 @@ function allPts(rect: Rectangle): Pts[] {
 
 /**
  * random shuffle of an array
- *
  * @param array
  */
 function shuffleArray<T>(array: T[]): T[] {
@@ -190,7 +187,6 @@ function swapTwoRectangles(engine: HyperFormula, pts1: Pts, pts2: Pts, sideX: nu
 /**
  * Empties the engine using .setCellContents()
  * operates only on sheet: 0
- *
  * @param engine - engine to be emptied
  * @param rect - rectangle of adresses we expect nonempty cell to be in
  *

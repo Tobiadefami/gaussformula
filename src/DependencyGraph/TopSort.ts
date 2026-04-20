@@ -37,7 +37,6 @@ export class TopSort<T> {
   /**
    * An iterative implementation of Tarjan's algorithm for finding strongly connected components.
    * Returns vertices in order of topological sort, but vertices that are on cycles are kept separate.
-   *
    * @param modifiedNodes - seed for computation. During engine init run, all of the vertices of grap. In recomputation run, changed vertices.
    * @param operatingFunction - recomputes value of a node, and returns whether a change occurred
    * @param onCycle - action to be performed when node is on cycle

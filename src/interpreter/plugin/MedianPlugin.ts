@@ -44,7 +44,6 @@ export class MedianPlugin extends FunctionPlugin implements FunctionPluginTypech
    * Corresponds to MEDIAN(Number1, Number2, ...).
    *
    * Returns a median of given numbers.
-   *
    * @param ast
    * @param state
    */

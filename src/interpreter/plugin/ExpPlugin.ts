@@ -22,7 +22,6 @@ export class ExpPlugin extends FunctionPlugin implements FunctionPluginTypecheck
    * Corresponds to EXP(value)
    *
    * Calculates the exponent for basis e
-   *
    * @param ast
    * @param state
    */

@@ -3,13 +3,13 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import { CellError, ErrorType } from "./Cell";
+import { CellError, ErrorType } from './Cell'
 import {
   ConfidenceIntervalNumber,
   SampledDistribution,
-} from "./interpreter/InterpreterValue";
+} from './interpreter/InterpreterValue'
 
-import { SimpleRangeValue } from "./SimpleRangeValue";
+import { SimpleRangeValue } from './SimpleRangeValue'
 
 export type NoErrorCellValue =
   | number
@@ -18,27 +18,27 @@ export type NoErrorCellValue =
   | null
   | ConfidenceIntervalNumber
   | SampledDistribution
-  | SimpleRangeValue;
-export type CellValue = NoErrorCellValue | DetailedCellError;
+  | SimpleRangeValue
+export type CellValue = NoErrorCellValue | DetailedCellError
 
 export class DetailedCellError {
-  public readonly type: ErrorType;
-  public readonly message: string;
+  public readonly type: ErrorType
+  public readonly message: string
 
   constructor(
     error: CellError,
     public readonly value: string,
     public readonly address?: string
   ) {
-    this.type = error.type;
-    this.message = error.message ?? "";
+    this.type = error.type
+    this.message = error.message ?? ''
   }
 
   public toString(): string {
-    return this.value;
+    return this.value
   }
 
   public valueOf(): string {
-    return this.value;
+    return this.value
   }
 }

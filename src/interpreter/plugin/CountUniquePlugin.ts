@@ -28,7 +28,6 @@ export class CountUniquePlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to COUNTUNIQUE(Number1, Number2, ...).
    *
    * Returns number of unique numbers from arguments
-   *
    * @param ast
    * @param state
    */

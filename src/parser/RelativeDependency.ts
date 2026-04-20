@@ -14,7 +14,7 @@ import {SimpleCellAddress} from '../Cell'
 export class RelativeDependency {
   // Base implementation that will be overridden
   public absolutize(baseAddress: SimpleCellAddress): any {
-    throw new Error('Method not implemented.');
+    throw new Error('Method not implemented.')
   }
 }
 
@@ -43,7 +43,7 @@ export class AddressDependency extends RelativeDependency {
   constructor(
     public readonly dependency: CellAddress
   ) {
-    super();
+    super()
   }
 
   public absolutize(baseAddress: SimpleCellAddress) {
@@ -56,7 +56,7 @@ export class CellRangeDependency extends RelativeDependency {
     public readonly start: CellAddress,
     public readonly end: CellAddress,
   ) {
-    super();
+    super()
   }
 
   public absolutize(baseAddress: SimpleCellAddress) {
@@ -72,7 +72,7 @@ export class ColumnRangeDependency extends RelativeDependency {
     public readonly start: ColumnAddress,
     public readonly end: ColumnAddress,
   ) {
-    super();
+    super()
   }
 
   public absolutize(baseAddress: SimpleCellAddress) {
@@ -87,7 +87,7 @@ export class RowRangeDependency extends RelativeDependency {
     public readonly start: RowAddress,
     public readonly end: RowAddress,
   ) {
-    super();
+    super()
   }
 
   public absolutize(baseAddress: SimpleCellAddress) {
@@ -101,7 +101,7 @@ export class NamedExpressionDependency extends RelativeDependency {
   constructor(
     public readonly name: string
   ) {
-    super();
+    super()
   }
 
   public absolutize(_baseAddress: SimpleCellAddress) {

@@ -157,7 +157,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISBINARY(value)
    *
    * Returns true if provided value is a valid binary number
-   *
    * @param ast
    * @param state
    */
@@ -171,7 +170,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISERR(value)
    *
    * Returns true if provided value is an error except #N/A!
-   *
    * @param ast
    * @param state
    */
@@ -185,7 +183,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISERROR(value)
    *
    * Checks whether provided value is an error
-   *
    * @param ast
    * @param state
    */
@@ -199,7 +196,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISFORMULA(value)
    *
    * Checks whether referenced cell is a formula
-   *
    * @param ast
    * @param state
    */
@@ -217,7 +213,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISBLANK(value)
    *
    * Checks whether provided cell reference is empty
-   *
    * @param ast
    * @param state
    */
@@ -231,7 +226,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISNA(value)
    *
    * Returns true if provided value is #N/A! error
-   *
    * @param ast
    * @param state
    */
@@ -245,7 +239,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISNUMBER(value)
    *
    * Checks whether provided cell reference is a number
-   *
    * @param ast
    * @param state
    */
@@ -257,7 +250,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISLOGICAL(value)
    *
    * Checks whether provided cell reference is of logical type
-   *
    * @param ast
    * @param state
    */
@@ -271,7 +263,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISREF(value)
    *
    * Returns true if provided value is #REF! error
-   *
    * @param ast
    * @param state
    */
@@ -285,7 +276,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISTEXT(value)
    *
    * Checks whether provided cell reference is of logical type
-   *
    * @param ast
    * @param state
    */
@@ -299,7 +289,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ISNONTEXT(value)
    *
    * Checks whether provided cell reference is of logical type
-   *
    * @param ast
    * @param state
    */
@@ -313,7 +302,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to COLUMN(reference)
    *
    * Returns column number of a reference or a formula cell if reference not provided
-   *
    * @param ast
    * @param state
    */
@@ -328,7 +316,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to COLUMNS(range)
    *
    * Returns number of columns in provided range of cells
-   *
    * @param ast
    * @param state
    */
@@ -365,7 +352,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ROW(reference)
    *
    * Returns row number of a reference or a formula cell if reference not provided
-   *
    * @param ast
    * @param state
    */
@@ -380,7 +366,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to ROWS(range)
    *
    * Returns number of rows in provided range of cells
-   *
    * @param ast
    * @param state
    */
@@ -417,7 +402,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to INDEX
    *
    * Returns specific position in 2d array.
-   *
    * @param ast
    * @param state
    */
@@ -437,7 +421,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to NA()
    *
    * Returns #N/A!
-   *
    * @param _ast
    * @param _state
    */
@@ -449,7 +432,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to SHEET(value)
    *
    * Returns sheet number of a given value or a formula sheet number if no argument is provided
-   *
    * @param ast
    * @param state
    */
@@ -473,7 +455,6 @@ export class InformationPlugin extends FunctionPlugin implements FunctionPluginT
    *
    * Returns number of sheet of a given reference or number of all sheets in workbook when no argument is provided.
    * It returns always 1 for a valid reference as 3D references are not supported.
-   *
    * @param ast
    * @param state
    */

@@ -20,11 +20,8 @@ export enum Events {
 export interface Listeners {
   /**
    * Occurs when a sheet is added anywhere inside the workbook.
-   *
    * @event
-   *
    * @param {string} addedSheetDisplayName the name of added sheet
-   *
    * @example
    * ```js
    * const hfInstance = HyperFormula.buildEmpty();
@@ -46,19 +43,15 @@ export interface Listeners {
    * // this time, the console doesn't print anything
    * hfInstance.addSheet('FooBaz');
    * ```
-   *
    * @category Sheet
    */
   sheetAdded: (addedSheetDisplayName: string) => any,
 
   /**
    * Occurs when a sheet is removed from anywhere inside the workbook.
-   *
    * @event
-   *
    * @param {string} removedSheetDisplayName the name of removed sheet
    * @param {ExportedChange[]} changes the values and location of applied changes
-   *
    * @example
    * ```js
    * const hfInstance = HyperFormula.buildFromSheets({
@@ -83,19 +76,15 @@ export interface Listeners {
    * // this time, the console doesn't print anything
    * hfInstance.removeSheet(1);
    * ```
-   *
    * @category Sheet
    */
   sheetRemoved: (removedSheetDisplayName: string, changes: ExportedChange[]) => any,
 
   /**
    * Occurs when a sheet is renamed anywhere inside the workbook.
-   *
    * @event
-   *
    * @param {string} oldDisplayName the old name of a sheet before renaming
    * @param {string} newDisplayName the new name of the sheet after renaming
-   *
    * @example
    * ```js
    * const hfInstance = HyperFormula.buildFromSheets({
@@ -120,19 +109,15 @@ export interface Listeners {
    * // this time, the console doesn't print anything
    * hfInstance.renameSheet(1, 'MySheet1');
    * ```
-   *
    * @category Sheet
    */
   sheetRenamed: (oldDisplayName: string, newDisplayName: string) => any,
 
   /**
    * Occurs when a named expression with specified values and location is added.
-   *
    * @event
-   *
    * @param {string} namedExpressionName the name of added expression
    * @param {ExportedChange[]} changes the values and location of applied changes
-   *
    * @example
    * ```js
    * const hfInstance = HyperFormula.buildFromArray([
@@ -156,19 +141,15 @@ export interface Listeners {
    * // this time, the console doesn't print anything
    * const changes = hfInstance.addNamedExpression('uglyName', '=Sheet1!$A$1+100', 0);
    * ```
-   *
    * @category Named Expression
    */
   namedExpressionAdded: (namedExpressionName: string, changes: ExportedChange[]) => any,
 
   /**
    * Occurs when a named expression with specified values is removed and from an indicated location.
-   *
    * @event
-   *
    * @param {string} namedExpressionName the name of removed expression
    * @param {ExportedChange[]} changes the values and location of applied changes
-   *
    * @example
    * ```js
    * const hfInstance = HyperFormula.buildFromArray([
@@ -196,18 +177,14 @@ export interface Listeners {
    * // this time, the console doesn't print anything
    * const changes = hfInstance.removeNamedExpression('uglyName', 0);
    * ```
-   *
    * @category Named Expression
    */
   namedExpressionRemoved: (namedExpressionName: string, changes: ExportedChange[]) => any,
 
   /**
    * Occurs when values in a specified location are changed and cause recalculation.
-   *
    * @event
-   *
    * @param {ExportedChange[]} changes the values and location of applied changes
-   *
    * @example
    * ```js
    * const hfInstance = HyperFormula.buildFromArray([
@@ -231,16 +208,13 @@ export interface Listeners {
    * // this time, the console doesn't print anything
    * const changes = hfInstance.setCellContents({ col: 3, row: 0, sheet: 0 }, [['=A1']]);
    * ```
-   *
    * @category Values
    */
   valuesUpdated: (changes: ExportedChange[]) => any,
 
   /**
    * Occurs when evaluation is suspended.
-   *
    * @event
-   *
    * @example
    * ```js
    * const hfInstance = HyperFormula.buildFromSheets({
@@ -268,18 +242,14 @@ export interface Listeners {
    * // this time, the console doesn't print anything
    * hfInstance.suspendEvaluation();;
    * ```
-   *
    * @category Batch
    */
   evaluationSuspended: () => any,
 
   /**
    * Occurs when evaluation is resumed.
-   *
    * @event
-   *
    * @param {ExportedChange[]} changes the values and location of applied changes
-   *
    * @example
    * ```js
    * const hfInstance = HyperFormula.buildFromSheets({
@@ -310,7 +280,6 @@ export interface Listeners {
    * // this time, the console doesn't print anything
    * hfInstance.resumeEvaluation();;
    * ```
-   *
    * @category Batch
    */
   evaluationResumed: (changes: ExportedChange[]) => any,

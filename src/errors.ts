@@ -152,7 +152,6 @@ function replacer(key: string, val: any): any {
  * Error thrown when the given value cannot be parsed.
  *
  * Checks against the validity in:
- *
  * @see [[buildFromArray]]
  * @see [[buildFromSheets]]
  * @see [[setCellsContents]]
@@ -168,7 +167,6 @@ export class UnableToParseError extends Error {
  * It also displays the expected type.
  * This error might be thrown while setting or updating the [[ConfigParams]].
  * The following methods accept [[ConfigParams]] as a parameter:
- *
  * @see [[buildEmpty]]
  * @see [[buildFromArray]]
  * @see [[buildFromSheets]]
@@ -184,7 +182,6 @@ export class ExpectedValueOfTypeError extends Error {
  * Error thrown when supplied config parameter value is an empty string.
  * This error might be thrown while setting or updating the [[ConfigParams]].
  * The following methods accept [[ConfigParams]] as a parameter:
- *
  * @see [[buildEmpty]]
  * @see [[buildFromArray]]
  * @see [[buildFromSheets]]
@@ -200,7 +197,6 @@ export class ConfigValueEmpty extends Error {
  * Error thrown when supplied config parameter value is too small.
  * This error might be thrown while setting or updating the [[ConfigParams]].
  * The following methods accept [[ConfigParams]] as a parameter:
- *
  * @see [[buildEmpty]]
  * @see [[buildFromArray]]
  * @see [[buildFromSheets]]
@@ -216,7 +212,6 @@ export class ConfigValueTooSmallError extends Error {
  * Error thrown when supplied config parameter value is too big.
  * This error might be thrown while setting or updating the [[ConfigParams]].
  * The following methods accept [[ConfigParams]] as a parameter:
- *
  * @see [[buildEmpty]]
  * @see [[buildFromArray]]
  * @see [[buildFromSheets]]
@@ -233,7 +228,6 @@ export class ConfigValueTooBigError extends Error {
  * It also displays the expected value.
  * This error might be thrown while setting or updating the [[ConfigParams]].
  * The following methods accept [[ConfigParams]] as a parameter:
- *
  * @see [[buildEmpty]]
  * @see [[buildFromArray]]
  * @see [[buildFromSheets]]
@@ -249,7 +243,6 @@ export class ExpectedOneOfValuesError extends Error {
  * Error thrown when computations become suspended.
  * To perform any other action wait for the batch to complete or resume the evaluation.
  * Relates to:
- *
  * @see [[batch]]
  * @see [[suspendEvaluation]]
  * @see [[resumeEvaluation]]
@@ -271,7 +264,6 @@ export class MissingTranslationError extends Error {
 
 /**
  * Error thrown when trying to override protected translation.
- *
  * @see [[registerLanguage]]
  * @see [[registerFunction]]
  * @see [[registerFunctionPlugin]]
@@ -284,7 +276,6 @@ export class ProtectedFunctionTranslationError extends Error {
 
 /**
  * Error thrown when trying to retrieve not registered language
- *
  * @see [[getLanguage]]
  * @see [[unregisterLanguage]]
  */
@@ -296,7 +287,6 @@ export class LanguageNotRegisteredError extends Error {
 
 /**
  * Error thrown when trying to register already registered language
- *
  * @see [[registerLanguage]]
  */
 export class LanguageAlreadyRegisteredError extends Error {
@@ -307,7 +297,6 @@ export class LanguageAlreadyRegisteredError extends Error {
 
 /**
  * Error thrown when function plugin is invalid.
- *
  * @see [[registerFunction]]
  * @see [[registerFunctionPlugin]]
  * @see [[buildFromArray]]
@@ -325,7 +314,6 @@ export class FunctionPluginValidationError extends Error {
 
 /**
  * Error thrown when trying to register, override or remove function with reserved id.
- *
  * @see [[registerFunctionPlugin]]
  * @see [[registerFunction]]
  * @see [[unregisterFunction]]
@@ -355,7 +343,6 @@ export class SourceLocationHasArrayError extends Error {
 
 /**
  * Error thrown when selected target location has an array.
- *
  * @see [[addRows]]
  * @see [[addColumns]]
  * @see [[moveCells]]
@@ -371,7 +358,6 @@ export class TargetLocationHasArrayError extends Error {
 
 /**
  * Error thrown when named expression contains relative addresses.
- *
  * @see [[addNamedExpression]]
  * @see [[changeNamedExpression]]
  */
@@ -383,7 +369,6 @@ export class NoRelativeAddressesAllowedError extends Error {
 
 /**
  * Error thrown when alias to a function is already defined.
- *
  * @see [[registerFunctionPlugin]]
  * @see [[registerFunction]]
  */

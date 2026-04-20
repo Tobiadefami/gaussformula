@@ -44,7 +44,6 @@ let _notified = false
 
 /**
  * Checks if the provided license key is grammatically valid or not expired.
- *
  * @param {string} licenseKey The license key to check.
  * @returns {LicenseKeyValidityState} Returns the checking state.
  */
@@ -84,7 +83,6 @@ export function checkLicenseKeyValidity(licenseKey: string): LicenseKeyValidityS
 
 /**
  * Formats a Date instance to hard-coded format MMMM DD, YYYY.
- *
  * @param {Date} date The date to format.
  * @returns {string}
  */

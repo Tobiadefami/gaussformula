@@ -21,22 +21,22 @@ respectively chosen.
 
 The library is developed in TypeScript and the exact configuration
 options can be found in `tsconfig.json`. To run the commands you need
-to set up your environment to have `npm` or `yarn` properly installed.
-After that, navigate to the project and run `npm install`.
+to set up your environment to have `pnpm` properly installed.
+After that, navigate to the project and run `pnpm install`.
 
 ## Build the project
 
 To build the project you can use the following commands:
 
-* `npm run bundle-all`  - generates development and production
+* `pnpm run bundle-all`  - generates development and production
 builds, verifies the version
-* `npm run bundle:es` - transpiles files into the `import/export`
+* `pnpm run bundle:es` - transpiles files into the `import/export`
 format , builds ES6 version
-* `npm run bundle:cjs` - builds CommonJS version
-* `npm run bundle:development` - generates development build
-* `npm run bundle:production` - generates production build
-* `npm run bundle:languages` - builds the languages
-* `npm run bundle:typings` - generates TypeScript typing, only emits ‘.d.ts’ declaration files
+* `pnpm run bundle:cjs` - builds CommonJS version
+* `pnpm run bundle:development` - generates development build
+* `pnpm run bundle:production` - generates production build
+* `pnpm run bundle:languages` - builds the languages
+* `pnpm run bundle:typings` - generates TypeScript typing, only emits ‘.d.ts’ declaration files
 
 We use the Node 20 LTS in the build-chain and recommend this version for building. Note that for using (not building) HyperFormula, a wider range of Node versions is supported.
 
@@ -57,8 +57,8 @@ By using the following commands you can verify the build:
 
 Most likely, you will want to document the code. You can use the following commands to generate the documentation:
 
-* `npm run docs:build` - builds the docs
-* `npm run docs:dev` - serves the development version of the docs locally
+* `pnpm run docs:build` - builds the docs
+* `pnpm run docs:dev` - serves the development version of the docs locally
 
 ## Run the tests
 
@@ -67,18 +67,18 @@ pass in both of them because the library might be used
 [server-side](server-side-installation) or in a browser, so you have
 to be sure that both environments are fine.
 
-* `npm run test` - runs the linter and all tests
-* `npm run test:unit` - runs unit tests
-  * To run a test suite that matches a word, add a Jest `-t` flag. For example: `npm run test:unit -- -t 'SUMIF'` runs only the tests that match the word `SUMIF` within `describe()` or `it()`.
-  * To run a specific test suite, pass the file name. For example: `npm run test:unit 'function-sumif.spec.ts'` runs only the unit tests from the file `function-sumif.spec.ts`.
-* `npm run test:coverage` - runs unit tests and generates code coverage
-* `npm run test:browser` - runs tests in **karma** once and closes all open browsers
-  * To run a specific `spec` file or a test suite you can add a Karma `--spec` flag. For example: `npm run test:browser.debug -- --spec=matrix.spec.ts` runs `matrix.spec.ts` browser tests only
-* `npm run test:browser.debug` - runs test in **karma** only in Chrome until you exit the process. It watches changes in `src` and `test` directories and rebuilds them automatically.
+* `pnpm run test` - runs the linter and all tests
+* `pnpm run test:unit` - runs unit tests
+  * To run a test suite that matches a word, add a Jest `-t` flag. For example: `pnpm run test:unit -t 'SUMIF'` runs only the tests that match the word `SUMIF` within `describe()` or `it()`.
+  * To run a specific test suite, pass the file name. For example: `pnpm run test:unit 'function-sumif.spec.ts'` runs only the unit tests from the file `function-sumif.spec.ts`.
+* `pnpm run test:coverage` - runs unit tests and generates code coverage
+* `pnpm run test:browser` - runs tests in **karma** once and closes all open browsers
+  * To run a specific `spec` file or a test suite you can add a Karma `--spec` flag. For example: `pnpm run test:browser.debug --spec=matrix.spec.ts` runs `matrix.spec.ts` browser tests only
+* `pnpm run test:browser.debug` - runs test in **karma** only in Chrome until you exit the process. It watches changes in `src` and `test` directories and rebuilds them automatically.
 
 ## Run the linter
 
 You can use the following commands to lint the code, so it meets the required standards. ESLint is used as the tool of choice in this case.
 
-* `npm run lint` - lints the code
-* `npm run lint:fix` - automatically fixes lint problems
+* `pnpm run lint` - lints the code
+* `pnpm run lint:fix` - automatically fixes lint problems

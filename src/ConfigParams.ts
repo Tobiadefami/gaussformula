@@ -8,10 +8,10 @@ import {
   SimpleDate,
   SimpleDateTime,
   SimpleTime,
-} from "./DateTimeHelper";
+} from './DateTimeHelper'
 
-import { ChooseAddressMapping } from "./DependencyGraph/AddressMapping/ChooseAddressMappingPolicy";
-import { Maybe } from "./Maybe";
+import { ChooseAddressMapping } from './DependencyGraph/AddressMapping/ChooseAddressMappingPolicy'
+import { Maybe } from './Maybe'
 
 export interface ConfigParams {
   /**
@@ -21,7 +21,7 @@ export interface ConfigParams {
    * @default false
    * @category String
    */
-  accentSensitive: boolean;
+  accentSensitive: boolean,
   /**
    * When set to `true`, makes string comparison case-sensitive.
    *
@@ -29,7 +29,7 @@ export interface ConfigParams {
    * @default false
    * @category String
    */
-  caseSensitive: boolean;
+  caseSensitive: boolean,
   /**
    * When set to `upper`, upper case sorts first.
    *
@@ -39,7 +39,7 @@ export interface ConfigParams {
    * @default 'lower'
    * @category String
    */
-  caseFirst: "upper" | "lower" | "false";
+  caseFirst: 'upper' | 'lower' | 'false',
   /**
    * Sets the address mapping policy to be used.
    *
@@ -50,13 +50,13 @@ export interface ConfigParams {
    * @default AlwaysDense
    * @category Engine
    */
-  chooseAddressMappingPolicy: ChooseAddressMapping;
+  chooseAddressMappingPolicy: ChooseAddressMapping,
   /**
    * A generic parameter that can be used to pass data to custom functions.
    * @default undefined
    * @category Engine
    */
-  context: unknown;
+  context: unknown,
   /**
    * Sets symbols that denote currency numbers.
    *
@@ -64,7 +64,7 @@ export interface ConfigParams {
    * @default ['$']
    * @category Number
    */
-  currencySymbol: string[];
+  currencySymbol: string[],
   /**
    * Sets the date formats accepted by the date-parsing function.
    *
@@ -88,7 +88,7 @@ export interface ConfigParams {
    * @default ['DD/MM/YYYY', 'DD/MM/YY']
    * @category Date and Time
    */
-  dateFormats: string[];
+  dateFormats: string[],
   /**
    * Sets a separator character that separates procedure arguments in formulas.
    *
@@ -98,7 +98,7 @@ export interface ConfigParams {
    * @default ','
    * @category Formula Syntax
    */
-  functionArgSeparator: string;
+  functionArgSeparator: string,
   /**
    * Sets a decimal separator used for parsing numerical literals.
    *
@@ -112,26 +112,26 @@ export interface ConfigParams {
    * @default '.'
    * @category Number
    */
-  decimalSeparator: "." | ",";
+  decimalSeparator: '.' | ',',
   /**
    * When set to `true`, formulas evaluating to `null` evaluate to `0` instead.
    * @default false
    * @category Engine
    */
-  evaluateNullToZero: boolean;
+  evaluateNullToZero: boolean,
   /**
    * Lists additional function plugins to be used by the formula interpreter.
    * @default []
    * @category Formula Syntax
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  functionPlugins: any[];
+  functionPlugins: any[],
   /**
    * When set to `true`, string comparison ignores punctuation.
    * @default false
    * @category String
    */
-  ignorePunctuation: boolean;
+  ignorePunctuation: boolean,
   /**
    * Sets a translation package for function and error names.
    *
@@ -139,7 +139,7 @@ export interface ConfigParams {
    * @default 'enGB'
    * @category Formula Syntax
    */
-  language: string;
+  language: string,
   /**
    * Controls the set of whitespace characters that are allowed inside a formula.
    *
@@ -149,7 +149,7 @@ export interface ConfigParams {
    * @default 'standard'
    * @category Formula Syntax
    */
-  ignoreWhiteSpace: "standard" | "any";
+  ignoreWhiteSpace: 'standard' | 'any',
   /**
    * Sets year 1900 as a leap year.
    *
@@ -159,7 +159,7 @@ export interface ConfigParams {
    * @default false
    * @category Date and Time
    */
-  leapYear1900: boolean;
+  leapYear1900: boolean,
   /**
    * Sets your HyperFormula license key.
    *
@@ -171,7 +171,7 @@ export interface ConfigParams {
    * @default undefined
    * @category License
    */
-  licenseKey: string;
+  licenseKey: string,
   /**
    * Sets the locale for language-sensitive string comparison.
    *
@@ -181,7 +181,7 @@ export interface ConfigParams {
    * @default 'en'
    * @category String
    */
-  localeLang: string;
+  localeLang: string,
   /**
    * When set to `true`, function criteria require whole cells to match the pattern.
    *
@@ -189,31 +189,31 @@ export interface ConfigParams {
    * @default true
    * @category String
    */
-  matchWholeCell: boolean;
+  matchWholeCell: boolean,
   /**
    * Sets a column separator symbol for array notation.
    * @default ','
    * @category Formula Syntax
    */
-  arrayColumnSeparator: "," | ";";
+  arrayColumnSeparator: ',' | ';',
   /**
    * Sets a row separator symbol for array notation.
    * @default ';'
    * @category Formula Syntax
    */
-  arrayRowSeparator: ";" | "|";
+  arrayRowSeparator: ';' | '|',
   /**
    * Sets the maximum number of rows.
    * @default 40.000
    * @category Engine
    */
-  maxRows: number;
+  maxRows: number,
   /**
    * Sets the maximum number of columns.
    * @default 18.278 (Columns A, B, ..., ZZZ)
    * @category Engine
    */
-  maxColumns: number;
+  maxColumns: number,
   /**
    * Internally, each date is represented as a number of days that passed since `nullDate`.
    *
@@ -223,7 +223,7 @@ export interface ConfigParams {
    * @default {year: 1899, month: 12, day: 30}
    * @category Date and Time
    */
-  nullDate: SimpleDate;
+  nullDate: SimpleDate,
   /**
    * Sets the interpretation of two-digit year values.
    *
@@ -235,7 +235,7 @@ export interface ConfigParams {
    * @default 30
    * @category Date and Time
    */
-  nullYear: number;
+  nullYear: number,
   /**
    * Sets a function that parses strings representing date-time into actual date-time values.
    *
@@ -249,7 +249,7 @@ export interface ConfigParams {
     dateTimeString: string,
     dateFormat?: string,
     timeFormat?: string
-  ) => Maybe<DateTime>;
+  ) => Maybe<DateTime>,
   /**
    * Sets how far two numerical values need to be from each other to be treated as non-equal.
    *
@@ -264,7 +264,7 @@ export interface ConfigParams {
    * @default 1e-13
    * @category Number
    */
-  precisionEpsilon: number;
+  precisionEpsilon: number,
   /**
    * Sets the precision level of calculations' output.
    *
@@ -279,7 +279,7 @@ export interface ConfigParams {
    * @default 10
    * @category Number
    */
-  precisionRounding: number;
+  precisionRounding: number,
   /**
    * Sets a function that converts date-time values into strings.
    *
@@ -292,7 +292,7 @@ export interface ConfigParams {
   stringifyDateTime: (
     dateTime: SimpleDateTime,
     dateTimeFormat: string
-  ) => Maybe<string>;
+  ) => Maybe<string>,
   /**
    * Sets a function that converts time duration values into strings.
    *
@@ -302,14 +302,14 @@ export interface ConfigParams {
    * @default defaultStringifyDuration
    * @category Date and Time
    */
-  stringifyDuration: (time: SimpleTime, timeFormat: string) => Maybe<string>;
+  stringifyDuration: (time: SimpleTime, timeFormat: string) => Maybe<string>,
   /**
    * Sets the number of samples used for Monte Carlo uncertainty propagation.
    * Higher values provide more accurrate results but use more memory
    * @default 1000
    * @category Engine
-   **/
-  sampleSize: number;
+   */
+  sampleSize: number,
   /**
    * When set to `false`, no rounding happens, and numbers are equal if and only if they are of truly identical value.
    *
@@ -317,7 +317,7 @@ export interface ConfigParams {
    * @default true
    * @category Number
    */
-  smartRounding: boolean;
+  smartRounding: boolean,
   /**
    * Sets the thousands' separator symbol for parsing numerical literals.
    *
@@ -332,7 +332,7 @@ export interface ConfigParams {
    * @default ''
    * @category Number
    */
-  thousandSeparator: "" | "," | " " | ".";
+  thousandSeparator: '' | ',' | ' ' | '.',
   /**
    * Sets the time formats accepted by the time-parsing function.
    *
@@ -363,7 +363,7 @@ export interface ConfigParams {
    * @default ['hh:mm', 'hh:mm:ss.sss']
    * @category Date and Time
    */
-  timeFormats: string[];
+  timeFormats: string[],
   /**
    * When set to `true`, array arithmetic is enabled globally.
    *
@@ -373,7 +373,7 @@ export interface ConfigParams {
    * @default false
    * @category Engine
    */
-  useArrayArithmetic: boolean;
+  useArrayArithmetic: boolean,
   /**
    * When set to `true`, switches column search strategy from binary search to column index.
    *
@@ -383,7 +383,7 @@ export interface ConfigParams {
    * @default false
    * @category Engine
    */
-  useColumnIndex: boolean;
+  useColumnIndex: boolean,
   /**
    * When set to `true`, enables gathering engine statistics and timings.
    *
@@ -391,25 +391,25 @@ export interface ConfigParams {
    * @default false
    * @category Engine
    */
-  useStats: boolean;
+  useStats: boolean,
   /**
    * Sets the number of elements kept in the undo history.
    * @default 20
    * @category Undo and Redo
    */
-  undoLimit: number;
+  undoLimit: number,
   /**
    * When set to `true`, criteria in functions (SUMIF, COUNTIF, ...) are allowed to use regular expressions.
    * @default false
    * @category String
    */
-  useRegularExpressions: boolean;
+  useRegularExpressions: boolean,
   /**
    * When set to `true`, criteria in functions (SUMIF, COUNTIF, ...) can use the `*` and `?` wildcards.
    * @default true
    * @category String
    */
-  useWildcards: boolean;
+  useWildcards: boolean,
 }
 
-export type ConfigParamsList = keyof ConfigParams;
+export type ConfigParamsList = keyof ConfigParams

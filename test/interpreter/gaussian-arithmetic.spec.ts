@@ -11,7 +11,7 @@ import {HyperFormula} from '../../src'
 declare global {
   namespace jest {
     interface Matchers<R> {
-      toEqualError(expected: any): R
+      toEqualError(expected: any): R,
     }
   }
 }

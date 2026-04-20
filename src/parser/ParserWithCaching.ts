@@ -63,7 +63,6 @@ export class ParserWithCaching {
 
   /**
    * Parses a formula.
-   *
    * @param text - formula to parse
    * @param formulaAddress - address with regard to which formula should be parsed. Impacts computed addresses in R0C0 format.
    */
@@ -171,7 +170,7 @@ export class ParserWithCaching {
         return { ...ast, args: argsFixed }
       }
       default:
-        return ast;
+        return ast
     }
   }
 

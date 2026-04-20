@@ -21,7 +21,6 @@ const simpleSheetNameRegex = new RegExp(`^${UNQUOTED_SHEET_NAME_PATTERN}$`)
 
 /**
  * Computes R0C0 representation of cell address based on it's string representation and base address.
- *
  * @param sheetMapping - mapping function needed to change name of a sheet to index
  * @param stringAddress - string representation of cell address, e.g., 'C64'
  * @param baseAddress - base address for R0C0 conversion
@@ -99,7 +98,6 @@ export const rowAddressFromString = (sheetMapping: SheetMappingFn, stringAddress
  * Computes simple (absolute) address of a cell address based on its string representation.
  * - If sheet name is present in the string representation but is not present in sheet mapping, returns `undefined`.
  * - If sheet name is not present in the string representation, returns {@param contextSheetId} as sheet number.
- *
  * @param sheetMapping - mapping function needed to change name of a sheet to index
  * @param stringAddress - string representation of cell address, e.g., 'C64'
  * @param contextSheetId - sheet in context of which we should parse the address
@@ -150,7 +148,6 @@ export const simpleCellRangeFromString = (sheetMapping: SheetMappingFn, stringAd
 /**
  * Returns string representation of absolute address
  * If sheet index is not present in sheet mapping, returns undefined
- *
  * @param sheetIndexMapping - mapping function needed to change sheet index to sheet name
  * @param address - object representation of absolute address
  * @param sheetIndex - if is not equal with address sheet index, string representation will contain sheet name
@@ -182,7 +179,6 @@ export const simpleCellRangeToString = (sheetIndexMapping: SheetIndexMappingFn, 
 
 /**
  * Convert column label to index
- *
  * @param columnStringRepresentation - column label (e.g., 'AAB')
  * @returns column index
  */
@@ -198,7 +194,6 @@ function columnLabelToIndex(columnStringRepresentation: string): number {
 
 /**
  * Converts column index to label
- *
  * @param column - address to convert
  * @returns string representation, e.g., 'AAB'
  */
