@@ -108,7 +108,7 @@ export abstract class Transformer implements FormulaTransformer {
             right: this.transformAst((ast as any).right, address),
           } as Ast
         }
-        return ast;
+        return ast
       }
     }
   }

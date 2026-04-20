@@ -10,7 +10,6 @@ import {NamedExpressionDependency, RelativeDependency} from './parser'
 
 /**
  * Converts dependencies from maybe relative addressing to absolute addressing.
- *
  * @param deps - list of addresses in R0C0 format
  * @param baseAddress - base address with regard to which make a convertion
  */

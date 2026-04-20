@@ -154,6 +154,6 @@ export class RemoveColumnsTransformer extends Transformer {
     // GAUSSIAN_NUMBER removed - no longer supported
     
     // Call the parent class implementation for other AST node types
-    return super.transformAst(ast, address);
+    return super.transformAst(ast, address)
   }
 }

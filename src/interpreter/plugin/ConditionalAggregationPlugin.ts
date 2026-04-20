@@ -142,7 +142,6 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
    * Range is the range to which criterion is to be applied.
    * Criterion is the criteria used to choose which cells will be included in sum.
    * SumRange is the range on which adding will be performed.
-   *
    * @param ast
    * @param state
    */
@@ -214,7 +213,6 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
    * Criterion is the criteria used to choose which cells will be included in sum.
    *
    * Returns number of cells on which criteria evaluate to true.
-   *
    * @param ast
    * @param state
    */

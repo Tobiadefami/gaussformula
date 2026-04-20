@@ -1,66 +1,66 @@
 typecheck: ## Typecheck the code
-	@npm run verify:typings
+	@pnpm run verify:typings
 
 setup: ## Setup project
-	@npm i
+	@pnpm install
 
 compile: ## Compile to javascript
-	@npm run compile
+	@pnpm run compile
 
 test: ## Run tests
-	@npm run test
+	@pnpm run test
 
 unit: ## Run unit tests
-	@npm run test:unit
+	@pnpm run test:unit
 
 test-ci: ## Separate test configuration for CI environment
-	@npm run test
+	@pnpm run test
 
 check: typecheck test ## Check whether code is working correctly (types + specs)
 
 full: check lint-fix ## Check whether code is ready to commit (types + specs + lint)
 
 lint: ## Show linting errors
-	@npm run lint
+	@pnpm run lint
 
 lint-fix: ## Fix linting errors
-	@npm run lint:fix
+	@pnpm run lint:fix
 
 coverage: ## Run tests and show coverage
-	@npm run test:coverage
+	@pnpm run test:coverage
 
 doc: ## Generate documentation
-	@npm run typedoc:build
+	@pnpm run typedoc:build
 
 servedoc: ## Run server with documentation
-	@npm run typedoc:serve
+	@pnpm run typedoc:serve
 
 clean: ## Clean compiled files
-	@npm run clean
+	@pnpm run clean
 
 bundle:
-	@npm run bundle-all
+	@pnpm run bundle-all
 
 bundle-es: compile ## Transpiles files to ES
-	@npm run bundle:es
+	@pnpm run bundle:es
 
 bundle-commonjs: compile ## Transpiles files to CommonJS
-	@npm run bundle:cjs
+	@pnpm run bundle:cjs
 
 bundle-development: compile ## Transpiles and bundles files to UMD format (without minification)
-	@npm run bundle:development
+	@pnpm run bundle:development
 
 bundle-production: compile ## Transpiles and bundles files to UMD format (with minification)
-	@npm run bundle:production
+	@pnpm run bundle:production
 
 bundle-typings: ## Generates TypeScript declaration files
-	@npm run bundle:typings
+	@pnpm run bundle:typings
 
 check-bundle:
-	@npm run verify-bundles
+	@pnpm run verify-bundles
 
 verify-production-licenses:
-	@npm run check:licenses
+	@pnpm run check:licenses
 
 help: ## Show all make commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

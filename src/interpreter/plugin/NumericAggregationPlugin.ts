@@ -233,7 +233,6 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
    * Corresponds to SUM(Number1, Number2, ...).
    *
    * Returns a sum of given numbers.
-   *
    * @param ast
    * @param state
    */
@@ -249,7 +248,6 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
    * Corresponds to MAX(Number1, Number2, ...).
    *
    * Returns a max of given numbers.
-   *
    * @param ast
    * @param state
    */
@@ -269,7 +267,6 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
    * Corresponds to MIN(Number1, Number2, ...).
    *
    * Returns a min of given numbers.
-   *
    * @param ast
    * @param state
    */
@@ -535,7 +532,6 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
 
   /**
    * Reduces procedure arguments with given reducing function
-   *
    * @param args
    * @param state
    * @param initialAccValue - "neutral" value (equivalent of 0)
@@ -608,7 +604,6 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
 
   /**
    * Performs range operation on given range
-   *
    * @param ast - cell range ast
    * @param state
    * @param initialAccValue - initial accumulator value for reducing function
@@ -658,7 +653,6 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
    *
    * If range is dependent on smaller range, list will contain value of smaller range for this function
    * and values of cells that are not present in smaller range
-   *
    * @param functionName - function name (e.g., SUM)
    * @param range - cell range
    * @param rangeVertex

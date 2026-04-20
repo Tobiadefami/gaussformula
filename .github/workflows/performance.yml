@@ -21,6 +21,11 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.15.9 --activate
+
       - name: (base) Checkout
         uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f # https://github.com/actions/checkout/releases/tag/v2.3.4
         with:
@@ -28,11 +33,11 @@ jobs:
 
       - name: (base) Install dependencies
         run: |
-          npm ci
+          pnpm install --frozen-lockfile || npm ci
 
       - name: (base) Run performance tests
         run: |
-          npm run benchmark:write-to-file base.json
+          pnpm run benchmark:write-to-file base.json || npm run benchmark:write-to-file base.json
 
       - name: (head) Checkout
         uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f # https://github.com/actions/checkout/releases/tag/v2.3.4
@@ -41,15 +46,15 @@ jobs:
 
       - name: (head) Install dependencies
         run: |
-          npm ci
+          pnpm install --frozen-lockfile
 
       - name: (head) Run performance tests
         run: |
-          npm run benchmark:write-to-file head.json
+          pnpm run benchmark:write-to-file head.json
 
       - name: Compare the results
         run: |
-          npm run benchmark:compare-benchmarks base.json head.json performance-report.md
+          pnpm run benchmark:compare-benchmarks base.json head.json performance-report.md
 
       - name: Publish a comment - header
         uses: marocchino/sticky-pull-request-comment@6804b5ad49d19c10c9ae7cf5057352f7ff333f31 # https://github.com/marocchino/sticky-pull-request-comment/tree/v1.6.0

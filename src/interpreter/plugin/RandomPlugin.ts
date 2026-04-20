@@ -32,7 +32,6 @@ export class RandomPlugin extends FunctionPlugin implements FunctionPluginTypech
    *
    * Returns a pseudo-random floating-point random number
    * in the range [0,1).
-   *
    * @param ast
    * @param state
    */

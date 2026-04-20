@@ -28,7 +28,6 @@ export class FormulaTextPlugin extends FunctionPlugin implements FunctionPluginT
    * Corresponds to FORMULATEXT(value)
    *
    * Returns a formula in a given cell as a string.
-   *
    * @param ast
    * @param state
    */

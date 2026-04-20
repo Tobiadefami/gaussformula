@@ -39,7 +39,6 @@ export class Statistics {
 
   /**
    * Starts tracking particular statistic.
-   *
    * @param name - statistic to start tracking
    */
   public start(name: StatType): void {
@@ -53,7 +52,6 @@ export class Statistics {
   /**
    * Stops tracking particular statistic.
    * Raise error if tracking statistic wasn't started.
-   *
    * @param name - statistic to stop tracking
    */
   public end(name: StatType): void {
@@ -72,7 +70,6 @@ export class Statistics {
 
   /**
    * Measure given statistic as execution of given function.
-   *
    * @param name - statistic to track
    * @param func - function to call
    * @returns result of the function call

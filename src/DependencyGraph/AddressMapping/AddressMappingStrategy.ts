@@ -16,14 +16,12 @@ export type AddressMappingStrategyConstructor = new (width: number, height: numb
 export interface AddressMappingStrategy {
   /**
    * Returns cell content
-   *
    * @param address - cell address
    */
   getCell(address: SheetCellAddress): Maybe<CellVertex>,
 
   /**
    * Set vertex for given address
-   *
    * @param address - cell address
    * @param newVertex - vertex to associate with address
    */
@@ -33,7 +31,6 @@ export interface AddressMappingStrategy {
 
   /**
    * Returns whether the address is present or not
-   *
    * @param address - address
    */
   has(address: SheetCellAddress): boolean,

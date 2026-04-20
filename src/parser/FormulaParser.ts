@@ -471,7 +471,6 @@ export class FormulaParser extends EmbeddedActionsParser {
 
   /**
    * Parses tokenized formula and builds abstract syntax tree
-   *
    * @param {ExtendedToken[]} tokens - tokenized formula
    * @param {SimpleCellAddress} formulaAddress - address of the cell in which formula is located
    */
@@ -757,7 +756,6 @@ export class FormulaParser extends EmbeddedActionsParser {
 
   /**
    * Entry rule wrapper that sets formula address
-   *
    * @param {SimpleCellAddress} address - address of the cell in which formula is located
    */
   private formulaWithContext(address: SimpleCellAddress): Ast {
@@ -786,7 +784,6 @@ export class FormulaParser extends EmbeddedActionsParser {
 
   /**
    * Returns {@link CellReferenceAst} or {@link CellRangeAst} based on OFFSET function arguments
-   *
    * @param {Ast[]} args - OFFSET function arguments
    */
   private handleOffsetHeuristic(args: Ast[]): Ast {
@@ -912,7 +909,6 @@ export class FormulaLexer {
 
   /**
    * Returns Lexer tokens from formula string
-   *
    * @param {string} text - string representation of a formula
    */
   public tokenizeFormula(text: string): ILexingResult {

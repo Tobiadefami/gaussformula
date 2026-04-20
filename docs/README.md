@@ -17,15 +17,15 @@ To start a local HyperFormula docs server:
 1. Make sure you're running [Node.js](https://nodejs.org/en/) 14+.
 2. From the main `hyperformula` directory, install the docs dependencies:
     ```bash
-    npm install
+    pnpm install
     ```
 3. From the main `hyperformula` directory, build HyperFormula:
    ```bash
-   npm run bundle-all
+   pnpm run bundle-all
    ```
 4. From the main `hyperformula` directory, create a dev build of the docs and start your local docs server:
    ```bash
-   npm run docs:dev
+   pnpm run docs:dev
    ```
 5. In your browser, go to: http://localhost:8080/hyperformula/.
 
@@ -33,8 +33,8 @@ To start a local HyperFormula docs server:
 
 From the `hyperformula` directory, you can run the following npm scripts:
 
-* `npm run docs:dev` - Starts a local docs server at http://localhost:8080/hyperformula/.
-* `npm run docs:build` - Builds the docs output into `/docs/.vuepress/dist`.
+* `pnpm run docs:dev` - Starts a local docs server at http://localhost:8080/hyperformula/.
+* `pnpm run docs:build` - Builds the docs output into `/docs/.vuepress/dist`.
 
 ## HyperFormula docs directory structure
 

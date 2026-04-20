@@ -32,7 +32,6 @@ export class RangeMapping {
 
   /**
    * Saves range vertex
-   *
    * @param vertex - vertex to save
    */
   public setRange(vertex: RangeVertex) {
@@ -60,7 +59,6 @@ export class RangeMapping {
 
   /**
    * Returns associated vertex for given range
-   *
    * @param start - top-left corner of the range
    * @param end - bottom-right corner of the range
    */
@@ -205,7 +203,6 @@ export class RangeMapping {
 
   /**
    * Finds smaller range does have own vertex.
-   *
    * @param range
    */
   public findSmallerRange(range: AbsoluteCellRange): { smallerRangeVertex?: RangeVertex, restRange: AbsoluteCellRange } {

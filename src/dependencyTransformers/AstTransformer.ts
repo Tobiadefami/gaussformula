@@ -1,3 +1,8 @@
+/**
+ * @license
+ * Copyright (c) 2025 Handsoncode. All rights reserved.
+ */
+
 import {AstNodeType} from '../parser/Ast'
 
 export function transformAst(ast: any): any {

@@ -68,7 +68,6 @@ export class LookupPlugin extends FunctionPlugin implements FunctionPluginTypech
 
   /**
    * Corresponds to VLOOKUP(key, range, index, [sorted])
-   *
    * @param ast
    * @param state
    */
@@ -99,7 +98,6 @@ export class LookupPlugin extends FunctionPlugin implements FunctionPluginTypech
 
   /**
    * Corresponds to HLOOKUP(key, range, index, [sorted])
-   *
    * @param ast
    * @param state
    */
@@ -129,7 +127,6 @@ export class LookupPlugin extends FunctionPlugin implements FunctionPluginTypech
 
   /**
    * Corresponds to XLOOKUP(lookup_value, lookup_array, return_array, [if_not_found], [match_mode], [search_mode])
-   * 
    * @param ast
    * @param state
    */

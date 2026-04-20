@@ -150,7 +150,6 @@ export class TrigonometryPlugin extends FunctionPlugin implements FunctionPlugin
    * Corresponds to ACOS(value)
    *
    * Returns the arc cosine (or inverse cosine) of a number.
-   *
    * @param ast
    * @param state
    */

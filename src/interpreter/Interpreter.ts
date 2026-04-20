@@ -78,7 +78,6 @@ export class Interpreter {
 
   /**
    * Calculates cell value from formula abstract syntax tree
-   *
    * @param formula - abstract syntax tree of formula
    * @param formulaAddress - address of the cell in which formula is located
    */

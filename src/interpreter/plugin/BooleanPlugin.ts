@@ -106,7 +106,6 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
    * Corresponds to TRUE()
    *
    * Returns the logical true
-   *
    * @param ast
    * @param state
    */
@@ -118,7 +117,6 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
    * Corresponds to FALSE()
    *
    * Returns the logical false
-   *
    * @param ast
    * @param state
    */
@@ -130,7 +128,6 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
    * Corresponds to IF(expression, value_if_true, value_if_false)
    *
    * Returns value specified as second argument if expression is true and third argument if expression is false
-   *
    * @param ast
    * @param state
    */
@@ -142,7 +139,6 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
 
   /**
    * Implementation for the IFS function. Returns the value that corresponds to the first true condition.
-   *
    * @param ast
    * @param state
    */
@@ -161,7 +157,6 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
    * Corresponds to AND(expression1, [expression2, ...])
    *
    * Returns true if all of the provided arguments are logically true, and false if any of it is logically false
-   *
    * @param ast
    * @param state
    */
@@ -175,7 +170,6 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
    * Corresponds to OR(expression1, [expression2, ...])
    *
    * Returns true if any of the provided arguments are logically true, and false otherwise
-   *
    * @param ast
    * @param state
    */

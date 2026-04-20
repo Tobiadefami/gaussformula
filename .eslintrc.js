@@ -104,6 +104,7 @@ module.exports = {
     'jsdoc/require-yields-check': 'warn',
     'jsdoc/valid-types': 'warn',
     'jsdoc/require-jsdoc': ['warn', {
+      enableFixer: false,
       require: {
         ArrowFunctionExpression: true,
         ClassDeclaration: true,
@@ -115,6 +116,15 @@ module.exports = {
     }],
   },
   overrides: [
+    {
+      files: ['build-simple.js'],
+      env: {
+        node: true,
+      },
+      rules: {
+        '@typescript-eslint/no-var-requires': 'off',
+      },
+    },
     {
       files: ['**/src/**/*.ts'],
       rules: {

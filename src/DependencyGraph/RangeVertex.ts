@@ -44,7 +44,6 @@ export class RangeVertex {
 
   /**
    * Returns cached value stored for given function
-   *
    * @param functionName - name of the function
    */
   public getFunctionValue(functionName: string): any {
@@ -53,7 +52,6 @@ export class RangeVertex {
 
   /**
    * Stores cached value for given function
-   *
    * @param functionName - name of the function
    * @param value - cached value
    */
@@ -63,7 +61,6 @@ export class RangeVertex {
 
   /**
    * Returns cached value for given cache key and criterion text representation
-   *
    * @param cacheKey - key to retrieve from the cache
    * @param criterionString - criterion text (ex. '<=5')
    */
@@ -73,7 +70,6 @@ export class RangeVertex {
 
   /**
    * Returns all cached values stored for given criterion function
-   *
    * @param cacheKey - key to retrieve from the cache
    */
   public getCriterionFunctionValues(cacheKey: string): Map<string, [any, CriterionLambda[]]> {
@@ -82,7 +78,6 @@ export class RangeVertex {
 
   /**
    * Stores all values for given criterion function
-   *
    * @param cacheKey - key to store in the cache
    * @param values - map with values
    */

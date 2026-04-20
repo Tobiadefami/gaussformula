@@ -75,7 +75,6 @@ export class Graph<Node> {
 
   /**
    * Checks whether a node is present in graph
-   *
    * @param node - node to check
    */
   public hasNode(node: Node): boolean {
@@ -84,7 +83,6 @@ export class Graph<Node> {
 
   /**
    * Checks whether exists edge between nodes. If one or both of nodes are not present in graph, returns false.
-   *
    * @param fromNode - node from which edge is outcoming
    * @param toNode - node to which edge is incoming
    */
@@ -101,7 +99,6 @@ export class Graph<Node> {
 
   /**
    * Returns nodes adjacent to given node. May contain removed nodes.
-   *
    * @param node - node to which adjacent nodes we want to retrieve
    *
    * Idea for performance improvement:
@@ -119,7 +116,6 @@ export class Graph<Node> {
 
   /**
    * Returns number of nodes adjacent to given node. Contrary to adjacentNodes(), this method returns only nodes that are present in graph.
-   *
    * @param node - node to which adjacent nodes we want to retrieve
    */
   public adjacentNodesCount(node: Node): number {
@@ -134,7 +130,6 @@ export class Graph<Node> {
 
   /**
    * Adds node to a graph
-   *
    * @param node - a node to be added
    */
   public addNodeAndReturnId(node: Node): NodeId {
@@ -157,7 +152,6 @@ export class Graph<Node> {
    * Adds edge between nodes.
    *
    * The nodes had to be added to the graph before, or the error will be raised
-   *
    * @param fromNode - node from which edge is outcoming
    * @param toNode - node to which edge is incoming
    */
@@ -262,7 +256,6 @@ export class Graph<Node> {
 
   /**
    * Sorts the graph topologically. Nodes that are on cycles are kept separate.
-   *
    * @param modifiedNodes - seed for computation. The algorithm assumes that only these nodes have changed since the last run.
    * @param operatingFunction - recomputes value of a node, and returns whether a change occurred
    * @param onCycle - action to be performed when node is on cycle
@@ -372,9 +365,6 @@ export class Graph<Node> {
     return this.nodesIds.get(node)
   }
 
-  /**
-   *
-   */
   private getNodeIdIfNotNumber(node: Node | NodeId): NodeId | undefined {
     return typeof node === 'number' ? node : this.nodesIds.get(node)
   }

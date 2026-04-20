@@ -28,6 +28,11 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.15.9 --activate
+
       - name: Run audit
         run: |
-          npm audit --omit='dev'
+          pnpm audit --prod

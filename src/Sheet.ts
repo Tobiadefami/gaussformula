@@ -43,7 +43,6 @@ export function validateAsSheet(sheet: Sheet): void {
 
 /**
  * Returns actual width, height and fill ratio of a sheet
- *
  * @param sheet - two-dimmensional array sheet representation
  */
 export function findBoundaries(sheet: Sheet): SheetBoundaries {
