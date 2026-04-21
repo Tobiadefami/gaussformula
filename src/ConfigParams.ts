@@ -311,6 +311,13 @@ export interface ConfigParams {
    */
   sampleSize: number,
   /**
+   * Sets the seed used for deterministic Monte Carlo uncertainty propagation.
+   * Change this value when you need a different reproducible simulation run.
+   * @default 'gaussformula-default-simulation-seed-v1'
+   * @category Engine
+   */
+  simulationSeed: number | string,
+  /**
    * When set to `false`, no rounding happens, and numbers are equal if and only if they are of truly identical value.
    *
    * For more information, see [precisionEpsilon](/api/interfaces/configparams.md#precisionepsilon).

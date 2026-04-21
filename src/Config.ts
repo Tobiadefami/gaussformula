@@ -33,6 +33,7 @@ import {
 } from './format/format'
 
 import { FunctionPluginDefinition } from './interpreter'
+import { DEFAULT_SIMULATION_SEED } from './interpreter/RandomSource'
 import { HyperFormula } from './HyperFormula'
 import { Maybe } from './Maybe'
 import { ParserConfig } from './parser/ParserConfig'
@@ -78,6 +79,7 @@ export class Config implements ConfigParams, ParserConfig {
     stringifyDateTime: defaultStringifyDateTime,
     stringifyDuration: defaultStringifyDuration,
     sampleSize: 1000,
+    simulationSeed: DEFAULT_SIMULATION_SEED,
     timeFormats: ['hh:mm', 'hh:mm:ss.sss'],
     thousandSeparator: '',
     undoLimit: 20,
@@ -90,6 +92,8 @@ export class Config implements ConfigParams, ParserConfig {
 
   /** @inheritDoc */
   public readonly sampleSize: number
+  /** @inheritDoc */
+  public readonly simulationSeed: number | string
   /** @inheritDoc */
   public readonly useArrayArithmetic: boolean
   /** @inheritDoc */
@@ -223,6 +227,7 @@ export class Config implements ConfigParams, ParserConfig {
       precisionEpsilon,
       precisionRounding,
       sampleSize,
+      simulationSeed,
       stringifyDateTime,
       stringifyDuration,
       smartRounding,
@@ -332,6 +337,12 @@ export class Config implements ConfigParams, ParserConfig {
     )
     this.sampleSize = configValueFromParam(sampleSize, 'number', 'sampleSize')
     validateNumberToBeAtLeast(this.sampleSize, 'sampleSize', 1000)
+    this.simulationSeed = configValueFromParamCheck(
+      simulationSeed,
+      isValidSimulationSeed,
+      'number or string',
+      'simulationSeed'
+    )
 
     this.nullYear = configValueFromParam(nullYear, 'number', 'nullYear')
     validateNumberToBeAtLeast(this.nullYear, 'nullYear', 0)
@@ -497,6 +508,10 @@ export class Config implements ConfigParams, ParserConfig {
       }
     }
   }
+}
+
+function isValidSimulationSeed(seed: unknown): seed is number | string {
+  return typeof seed === 'number' || typeof seed === 'string'
 }
 
 function getFullConfigFromPartial(

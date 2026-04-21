@@ -1,9 +1,9 @@
-import { HyperFormula } from '../src'
+import { ConfidenceIntervalNumber, GaussFormula } from '../src'
 import type { VisualDependencyGraph } from '../src'
 
-describe('HyperFormula.getVisualDependencyGraph', () => {
+describe('GaussFormula.getVisualDependencyGraph', () => {
   it('returns whole-graph cell nodes and directed cell edges for numeric dependencies', () => {
-    const engine = HyperFormula.buildFromArray([['1', '2', '=A1+B1', '=C1*2', '5']])
+    const engine = GaussFormula.buildFromArray([['1', '2', '=A1+B1', '=C1*2', '5']])
 
     const graph: VisualDependencyGraph = engine.getVisualDependencyGraph()
 
@@ -57,7 +57,7 @@ describe('HyperFormula.getVisualDependencyGraph', () => {
   })
 
   it('returns structured confidence interval and sampled distribution summaries', () => {
-    const engine = HyperFormula.buildFromArray([['CI[10, 20]', '=A1*2']], {
+    const engine = GaussFormula.buildFromArray([['CI[10, 20]', '=A1*2']], {
       sampleSize: 1000,
     })
 
@@ -87,8 +87,50 @@ describe('HyperFormula.getVisualDependencyGraph', () => {
     )
   })
 
+  it('preserves programmatic confidence interval interpretations in graph summaries', () => {
+    const engine = GaussFormula.buildFromArray([['CI[10, 20]', undefined, undefined, '=A1+B1+C1']], {
+      sampleSize: 1000,
+    })
+    engine.setCellContents(
+      { sheet: 0, row: 0, col: 1 },
+      new ConfidenceIntervalNumber(10, 20, 95, { interpretation: 'uniform' })
+    )
+    engine.setCellContents(
+      { sheet: 0, row: 0, col: 2 },
+      new ConfidenceIntervalNumber(10, 20, 95, { interpretation: 'lognormal' })
+    )
+
+    const graph: VisualDependencyGraph = engine.getVisualDependencyGraph()
+
+    expect(graph.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          address: 'A1',
+          value: expect.objectContaining({
+            kind: 'confidence_interval',
+            interpretation: 'normal',
+          }),
+        }),
+        expect.objectContaining({
+          address: 'B1',
+          value: expect.objectContaining({
+            kind: 'confidence_interval',
+            interpretation: 'uniform',
+          }),
+        }),
+        expect.objectContaining({
+          address: 'C1',
+          value: expect.objectContaining({
+            kind: 'confidence_interval',
+            interpretation: 'lognormal',
+          }),
+        }),
+      ]),
+    )
+  })
+
   it('does not attribute spill aliases as separate dependency sources', () => {
-    const engine = HyperFormula.buildFromArray([['={1,2}', undefined, '=B1']])
+    const engine = GaussFormula.buildFromArray([['={1,2}', undefined, '=B1']])
 
     const graph = engine.getVisualDependencyGraph()
 

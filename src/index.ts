@@ -49,7 +49,10 @@ import {HyperFormula as GaussFormula} from './HyperFormula'
 import {RawTranslationPackage} from './i18n'
 import enGB from './i18n/languages/enGB'
 import {FunctionArgument, FunctionPlugin, FunctionPluginDefinition, FunctionArgumentType, ImplementedFunctions, FunctionMetadata, EmptyValue} from './interpreter'
-import {FormatInfo} from './interpreter/InterpreterValue'
+import {
+  ConfidenceIntervalNumber,
+  FormatInfo,
+} from './interpreter/InterpreterValue'
 import * as plugins from './interpreter/plugin'
 import {SimpleRangeValue} from './SimpleRangeValue'
 import {NamedExpression, NamedExpressionOptions} from './NamedExpressions'
@@ -63,6 +66,7 @@ import {ConfigParams} from './ConfigParams'
 class GaussFormulaNS extends GaussFormula {
   public static GaussFormula = GaussFormula
   public static HyperFormula = GaussFormula
+  public static ConfidenceIntervalNumber = ConfidenceIntervalNumber
   public static ErrorType = ErrorType
   public static CellError = CellError
   public static CellType = CellType
@@ -184,6 +188,7 @@ export {
   ProtectedFunctionTranslationError,
   SimpleRangeValue,
   EmptyValue,
+  ConfidenceIntervalNumber,
   SheetNameAlreadyTakenError,
   SheetSizeLimitExceededError,
   SourceLocationHasArrayError,

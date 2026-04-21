@@ -16,7 +16,8 @@ import {
   ValueCellVertex,
   Vertex
 } from './DependencyGraph'
-import {getRawValue} from './interpreter/InterpreterValue'
+import {ConfidenceIntervalNumber, getRawValue} from './interpreter/InterpreterValue'
+import {samplingIdentityFromAddress} from './interpreter/SamplingIdentity'
 import {ColumnSearchStrategy} from './Lookup/SearchStrategy'
 import {ParserWithCaching} from './parser'
 import {Sheets} from './Sheet'
@@ -118,8 +119,11 @@ export class SimpleStrategy implements GraphBuilderStrategy {
             /* we don't care about empty cells here */
           } else {
             this.shrinkArrayIfNeeded(address)
-            const vertex = new ValueCellVertex(parsedCellContent.value, cellContent)
-            this.columnIndex.add(getRawValue(parsedCellContent.value), address)
+            const parsedValue = parsedCellContent.value instanceof ConfidenceIntervalNumber
+              ? parsedCellContent.value.withSamplingIdentity(samplingIdentityFromAddress(address))
+              : parsedCellContent.value
+            const vertex = new ValueCellVertex(parsedValue, cellContent)
+            this.columnIndex.add(getRawValue(parsedValue), address)
             this.dependencyGraph.addVertex(address, vertex)
           }
         }

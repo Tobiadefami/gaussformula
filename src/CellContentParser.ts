@@ -30,6 +30,7 @@ import { UnableToParseError } from './errors'
 
 export type RawCellContent =
   | Date
+  | ConfidenceIntervalNumber
   | string
   | number
   | boolean
@@ -115,6 +116,8 @@ export class CellContentParser {
   public parse(content: RawCellContent): CellContent.Type {
     if (content === undefined || content === null) {
       return CellContent.Empty.getSingletonInstance()
+    } else if (content instanceof ConfidenceIntervalNumber) {
+      return new CellContent.Number(content)
     } else if (typeof content === 'number') {
       if (isNumberOverflow(content)) {
         return new CellContent.Error(ErrorType.NUM, ErrorMessage.ValueLarge)

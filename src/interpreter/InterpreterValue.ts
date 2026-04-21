@@ -28,6 +28,7 @@
 import { CellError } from '../Cell'
 import { Config } from '../Config'
 import { SimpleRangeValue } from '../SimpleRangeValue'
+import { createSamplingRandomSource, RandomSource } from './RandomSource'
 
 /**
  * A symbol representing an empty cell value.
@@ -173,20 +174,21 @@ export function getTypeFormatOfExtendedNumber(
   }
 }
 
-function sampleStandardNormalBoxMuller(): number {
-  const u1 = Math.random()
-  const u2 = Math.random()
+function sampleStandardNormalBoxMuller(random: RandomSource): number {
+  const u1 = Math.max(random(), Number.MIN_VALUE)
+  const u2 = random()
   return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2)
 }
 
 export function sampleNormalDistribution(
   mean: number,
   variance: number,
-  sampleSize: number
+  sampleSize: number,
+  random: RandomSource = createSamplingRandomSource()
 ): number[] {
   const std = Math.sqrt(variance)
   return Array.from({ length: sampleSize }, () => {
-    const z0 = sampleStandardNormalBoxMuller()
+    const z0 = sampleStandardNormalBoxMuller(random)
     return mean + std * z0
   })
 }
@@ -199,9 +201,10 @@ export function sampleNormalDistribution(
 export function sampleLogNormalDistribution(
   mu: number,
   variance: number,
-  sampleSize: number
+  sampleSize: number,
+  random: RandomSource = createSamplingRandomSource()
 ): number[] {
-  const normalSamples = sampleNormalDistribution(mu, variance, sampleSize)
+  const normalSamples = sampleNormalDistribution(mu, variance, sampleSize, random)
   return normalSamples.map((x) => Math.exp(x))
 }
 
@@ -211,9 +214,10 @@ export function sampleLogNormalDistribution(
 export function sampleUniformDistribution(
   a: number,
   b: number,
-  sampleSize: number
+  sampleSize: number,
+  random: RandomSource = createSamplingRandomSource()
 ): number[] {
-  return Array.from({ length: sampleSize }, () => a + (b - a) * Math.random())
+  return Array.from({ length: sampleSize }, () => a + (b - a) * random())
 }
 
 // LogNormalNumber removed - no longer used as input type in unified CI approach
@@ -235,6 +239,13 @@ export type CIInterpretation = 'normal' | 'uniform' | 'lognormal' | 'auto'
  */
 export type CISourceFormat = 'range' | 'normal' | 'lognormal' | 'uniform'
 
+type ConfidenceIntervalOptions = {
+  format?: string,
+  interpretation?: CIInterpretation,
+  sourceFormat?: CISourceFormat,
+  samplingIdentity?: string,
+}
+
 /**
  * ConfidenceIntervalNumber represents the primary input type for uncertain values.
  * Users enter "low to high" ranges
@@ -248,16 +259,13 @@ export class ConfidenceIntervalNumber extends RichNumber {
   public readonly confidenceLevel: number
   public readonly interpretation: CIInterpretation
   public readonly sourceFormat: CISourceFormat
+  public readonly samplingIdentity?: string
 
   constructor(
     lower: number,
     upper: number,
     confidenceLevel: number = 95, // Default to 95%
-    options?: {
-      format?: string,
-      interpretation?: CIInterpretation,
-      sourceFormat?: CISourceFormat,
-    }
+    options?: ConfidenceIntervalOptions
   ) {
     // Initialize with a temporary value - we'll set the correct median after setting properties
     super(0, options?.format)
@@ -265,6 +273,7 @@ export class ConfidenceIntervalNumber extends RichNumber {
     this.upper = upper
     this.confidenceLevel = confidenceLevel
     this.sourceFormat = options?.sourceFormat || 'range'
+    this.samplingIdentity = options?.samplingIdentity
     
     // Handle auto-detection of interpretation
     const requestedInterpretation = options?.interpretation || 'auto'
@@ -335,9 +344,25 @@ export class ConfidenceIntervalNumber extends RichNumber {
       this.confidenceLevel,
       {
         format: this.format,
-        interpretation: this.interpretation
+        interpretation: this.interpretation,
+        sourceFormat: this.sourceFormat,
+        samplingIdentity: this.samplingIdentity,
       }
     ) as this
+  }
+
+  public withSamplingIdentity(samplingIdentity: string): ConfidenceIntervalNumber {
+    return new ConfidenceIntervalNumber(
+      this.lower,
+      this.upper,
+      this.confidenceLevel,
+      {
+        format: this.format,
+        interpretation: this.interpretation,
+        sourceFormat: this.sourceFormat,
+        samplingIdentity,
+      }
+    )
   }
   
   /**
@@ -346,6 +371,10 @@ export class ConfidenceIntervalNumber extends RichNumber {
    */
   public toSamples(config?: Config): number[] {
     const sampleSize = config?.sampleSize || Config.defaultConfig.sampleSize
+    const random = createSamplingRandomSource(
+      config?.simulationSeed,
+      this.samplingIdentity
+    )
     
     switch (this.interpretation) {
       case 'normal': {
@@ -355,12 +384,12 @@ export class ConfidenceIntervalNumber extends RichNumber {
         const mean = (this.lower + this.upper) / 2
         const std = (this.upper - this.lower) / (2 * zScore)
         const variance = std * std
-        return sampleNormalDistribution(mean, variance, sampleSize)
+        return sampleNormalDistribution(mean, variance, sampleSize, random)
       }
       
       case 'uniform': {
         // Hard bounds: sample uniformly on [lower, upper]
-        return sampleUniformDistribution(this.lower, this.upper, sampleSize)
+        return sampleUniformDistribution(this.lower, this.upper, sampleSize, random)
       }
       
       case 'lognormal': {
@@ -384,7 +413,7 @@ export class ConfidenceIntervalNumber extends RichNumber {
         const sigma = (lnUpper - lnLower) / 3.29 // 3.29 = 2 * 1.645
         const variance = sigma * sigma
         
-        return sampleLogNormalDistribution(mu, variance, sampleSize)
+        return sampleLogNormalDistribution(mu, variance, sampleSize, random)
       }
       
       default:
@@ -456,7 +485,8 @@ export class SampledDistribution extends RichNumber {
     const samples = sampleNormalDistribution(
       mean,
       variance,
-      config?.sampleSize ?? Config.defaultConfig.sampleSize
+      config?.sampleSize ?? Config.defaultConfig.sampleSize,
+      createSamplingRandomSource(config?.simulationSeed)
     )
     return new SampledDistribution(samples, config)
   }
