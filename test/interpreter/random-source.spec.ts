@@ -8,12 +8,6 @@ describe('deterministic random sources', () => {
   const take = (random: () => number, count: number): number[] =>
     Array.from({ length: count }, () => random())
 
-  it('creates the same sequence for the same numeric seed', () => {
-    expect(take(createSeededRandom(123), 5)).toEqual(
-      take(createSeededRandom(123), 5)
-    )
-  })
-
   it('creates the same sequence for the same string seed', () => {
     expect(take(createSeededRandom('workbook-alpha'), 5)).toEqual(
       take(createSeededRandom('workbook-alpha'), 5)

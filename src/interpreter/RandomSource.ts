@@ -1,10 +1,10 @@
 export const DEFAULT_SIMULATION_SEED = 'gaussformula-default-simulation-seed-v1'
 
 export type RandomSource = () => number
-export type SimulationSeed = number | string
+export type SimulationSeed = string
 
 export function createSeededRandom(seed: SimulationSeed): RandomSource {
-  let state = hashSeed(String(seed))
+  let state = hashSeed(seed)
 
   return () => {
     state += 0x6d2b79f5

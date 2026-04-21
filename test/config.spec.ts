@@ -72,6 +72,9 @@ describe('Config', () => {
     // eslint-disable-next-line
     // @ts-ignore
     expect(() => new Config({localeLang: EmptyValue})).toThrowError('Expected value of type: string for config parameter: localeLang')
+    // eslint-disable-next-line
+    // @ts-ignore
+    expect(() => new Config({simulationSeed: 123})).toThrowError('Expected value of type: string for config parameter: simulationSeed')
   })
 
   it('validation: function params', () => {
