@@ -93,7 +93,7 @@ export class Config implements ConfigParams, ParserConfig {
   /** @inheritDoc */
   public readonly sampleSize: number
   /** @inheritDoc */
-  public readonly simulationSeed: number | string
+  public readonly simulationSeed: string
   /** @inheritDoc */
   public readonly useArrayArithmetic: boolean
   /** @inheritDoc */
@@ -340,7 +340,7 @@ export class Config implements ConfigParams, ParserConfig {
     this.simulationSeed = configValueFromParamCheck(
       simulationSeed,
       isValidSimulationSeed,
-      'number or string',
+      'string',
       'simulationSeed'
     )
 
@@ -510,8 +510,8 @@ export class Config implements ConfigParams, ParserConfig {
   }
 }
 
-function isValidSimulationSeed(seed: unknown): seed is number | string {
-  return typeof seed === 'number' || typeof seed === 'string'
+function isValidSimulationSeed(seed: unknown): seed is string {
+  return typeof seed === 'string'
 }
 
 function getFullConfigFromPartial(

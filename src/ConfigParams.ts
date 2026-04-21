@@ -316,7 +316,7 @@ export interface ConfigParams {
    * @default 'gaussformula-default-simulation-seed-v1'
    * @category Engine
    */
-  simulationSeed: number | string,
+  simulationSeed: string,
   /**
    * When set to `false`, no rounding happens, and numbers are equal if and only if they are of truly identical value.
    *
