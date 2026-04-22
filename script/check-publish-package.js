@@ -37,13 +37,24 @@ const FILES_CHECKLIST = [
   'commonjs/i18n/languages/plPL.js',
 ]
 
+let input = ''
+
 process.stdin.resume()
 process.stdin.on('data', function(data) {
-  if (!data) {
-    throw Error('Missing STDIN stream');
+  input += data.toString()
+})
+
+process.stdin.on('end', function() {
+  const packageName = input
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .reverse()
+    .find((line) => line.endsWith('.tgz'))
+
+  if (!packageName) {
+    throw Error('Missing package name in STDIN stream');
   }
 
-  const packageName = data.toString().replace(/\n/g, '');
   let errorCode = 0;
 
   tar.x({ file: packageName }).then(() => {

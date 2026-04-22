@@ -168,10 +168,6 @@ export interface LexerConfig {
   WhiteSpace: TokenType,
   maxColumns: number,
   maxRows: number,
-  GaussianLiteral: TokenType,
-  LogNormalLiteral: TokenType,
-  UniformLiteral: TokenType,
-  ConfidenceIntervalLiteral: TokenType,
 }
 
 /**
@@ -252,10 +248,6 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     ...inject,
     ColumnRange,
     RowRange,
-    ConfidenceIntervalLiteral,
-    GaussianLiteral,
-    LogNormalLiteral,
-    UniformLiteral,
     NumberLiteral,
     StringLiteral,
     ErrorLiteral,
@@ -282,9 +274,5 @@ export const buildLexerConfig = (config: ParserConfig): LexerConfig => {
     decimalSeparator: config.decimalSeparator,
     maxColumns: config.maxColumns,
     maxRows: config.maxRows,
-    GaussianLiteral,
-    ConfidenceIntervalLiteral,
-    LogNormalLiteral,
-    UniformLiteral,
   }
 }

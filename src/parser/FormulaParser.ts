@@ -518,27 +518,6 @@ export class FormulaParser extends EmbeddedActionsParser {
   private positiveAtomicExpression: AstRule = this.RULE('positiveAtomicExpression', () => {
     const alt = this.OR([
       {
-        ALT: () => {
-          const gaussianToken = this.CONSUME(this.lexerConfig.GaussianLiteral) as ExtendedToken
-          // N() syntax no longer supported - use [lower, upper] format instead
-          return buildParsingErrorAst()
-        }
-      },
-      {
-        ALT: () => {
-          const logNormalToken = this.CONSUME(this.lexerConfig.LogNormalLiteral) as ExtendedToken
-          // LN() syntax no longer supported - use [lower, upper] format instead
-          return buildParsingErrorAst()
-        }
-      },
-      {
-        ALT: () => {
-          const uniformToken = this.CONSUME(this.lexerConfig.UniformLiteral) as ExtendedToken
-          // U() syntax no longer supported - use [lower, upper] format instead
-          return buildParsingErrorAst()
-        }
-      },
-      {
         ALT: () => this.SUBRULE(this.arrayExpression),
       },
       {

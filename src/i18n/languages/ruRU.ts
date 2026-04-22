@@ -19,6 +19,10 @@ const dictionary: RawTranslationPackage = {
   },
   functions: {
     FILTER: 'FILTER',
+    N: 'N',
+    'N.CI': 'N.CI',
+    U: 'U',
+    'LN.CI': 'LN.CI',
     ADDRESS: 'АДРЕС',
     'ARRAY_CONSTRAIN': 'ARRAY_CONSTRAIN',
     ARRAYFORMULA: 'ARRAYFORMULA',

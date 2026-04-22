@@ -11,7 +11,7 @@ import {
 } from './DependencyGraph'
 import { CellError, ErrorType } from './Cell'
 import {
-  ConfidenceIntervalNumber,
+  DistributionNumber,
   EmptyValue,
   InterpreterValue,
   RawInterpreterValue,
@@ -113,9 +113,8 @@ export class Serialization {
     const value = this.dependencyGraph.getScalarValue(address)
     if (value === EmptyValue) {
       return null
-    } else if (value instanceof ConfidenceIntervalNumber) {
-      // For CI, show in the original input format that users expect
-      return `[${value.getLower().toFixed(2)}, ${value.getUpper().toFixed(2)}]`
+    } else if (value instanceof DistributionNumber) {
+      return this.serializeDistribution(value)
     } else if (value instanceof SampledDistribution) {
       const mean = value.getMean()
       const variance = value.getVariance()
@@ -124,6 +123,26 @@ export class Serialization {
       return this.config.translationPackage.getErrorTranslation(value.type)
     } else {
       return getInterpreterRawValue(value)
+    }
+  }
+
+  private serializeDistribution(value: DistributionNumber): string {
+    const confidence = value.confidenceLevel === undefined
+      ? undefined
+      : (value.confidenceLevel > 1 ? value.confidenceLevel / 100 : value.confidenceLevel)
+    switch (value.kind) {
+      case 'normal':
+        if (value.source === 'ci' && value.lower !== undefined && value.upper !== undefined && value.confidenceLevel !== undefined) {
+          return `N.CI(${value.lower.toFixed(2)}, ${value.upper.toFixed(2)}, ${confidence?.toFixed(2)})`
+        }
+        return `N(${(value.mean ?? 0).toFixed(2)}, ${(value.variance ?? 0).toFixed(2)})`
+      case 'lognormal':
+        if (value.source === 'ci' && value.lower !== undefined && value.upper !== undefined && value.confidenceLevel !== undefined) {
+          return `LN.CI(${value.lower.toFixed(2)}, ${value.upper.toFixed(2)}, ${confidence?.toFixed(2)})`
+        }
+        return `LN(${(value.mu ?? 0).toFixed(2)}, ${(value.sigma ?? 0).toFixed(2)})`
+      case 'uniform':
+        return `U(${(value.min ?? 0).toFixed(2)}, ${(value.max ?? 0).toFixed(2)})`
     }
   }
 

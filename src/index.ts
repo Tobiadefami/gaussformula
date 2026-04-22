@@ -50,7 +50,7 @@ import {RawTranslationPackage} from './i18n'
 import enGB from './i18n/languages/enGB'
 import {FunctionArgument, FunctionPlugin, FunctionPluginDefinition, FunctionArgumentType, ImplementedFunctions, FunctionMetadata, EmptyValue} from './interpreter'
 import {
-  ConfidenceIntervalNumber,
+  DistributionNumber,
   FormatInfo,
 } from './interpreter/InterpreterValue'
 import * as plugins from './interpreter/plugin'
@@ -66,7 +66,7 @@ import {ConfigParams} from './ConfigParams'
 class GaussFormulaNS extends GaussFormula {
   public static GaussFormula = GaussFormula
   public static HyperFormula = GaussFormula
-  public static ConfidenceIntervalNumber = ConfidenceIntervalNumber
+  public static DistributionNumber = DistributionNumber
   public static ErrorType = ErrorType
   public static CellError = CellError
   public static CellType = CellType
@@ -188,7 +188,7 @@ export {
   ProtectedFunctionTranslationError,
   SimpleRangeValue,
   EmptyValue,
-  ConfidenceIntervalNumber,
+  DistributionNumber,
   SheetNameAlreadyTakenError,
   SheetSizeLimitExceededError,
   SourceLocationHasArrayError,

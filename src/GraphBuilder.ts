@@ -16,7 +16,7 @@ import {
   ValueCellVertex,
   Vertex
 } from './DependencyGraph'
-import {ConfidenceIntervalNumber, getRawValue} from './interpreter/InterpreterValue'
+import {DistributionNumber, getRawValue} from './interpreter/InterpreterValue'
 import {samplingIdentityFromAddress} from './interpreter/SamplingIdentity'
 import {ColumnSearchStrategy} from './Lookup/SearchStrategy'
 import {ParserWithCaching} from './parser'
@@ -119,7 +119,7 @@ export class SimpleStrategy implements GraphBuilderStrategy {
             /* we don't care about empty cells here */
           } else {
             this.shrinkArrayIfNeeded(address)
-            const parsedValue = parsedCellContent.value instanceof ConfidenceIntervalNumber
+            const parsedValue = parsedCellContent.value instanceof DistributionNumber
               ? parsedCellContent.value.withSamplingIdentity(samplingIdentityFromAddress(address))
               : parsedCellContent.value
             const vertex = new ValueCellVertex(parsedValue, cellContent)

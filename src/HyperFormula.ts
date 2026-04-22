@@ -82,7 +82,7 @@ import { ConfigParams } from './ConfigParams'
 import { Evaluator } from './Evaluator'
 import { FormatInfo } from './interpreter/InterpreterValue'
 import {
-  ConfidenceIntervalNumber,
+  DistributionNumber,
   SampledDistribution,
 } from './interpreter/InterpreterValue'
 import { FunctionPluginDefinition } from './interpreter'
@@ -111,11 +111,18 @@ import { validateArgToType } from './ArgumentSanitization'
 export type VisualDependencyNodeValue =
   | { kind: 'scalar', value: number }
   | {
-      kind: 'confidence_interval',
-      lower: number,
-      upper: number,
-      confidenceLevel: number,
-      interpretation: 'normal' | 'uniform' | 'lognormal' | 'auto',
+      kind: 'distribution',
+      distribution: 'normal' | 'lognormal' | 'uniform',
+      source: 'parameters' | 'ci',
+      mean?: number,
+      variance?: number,
+      mu?: number,
+      sigma?: number,
+      min?: number,
+      max?: number,
+      lower?: number,
+      upper?: number,
+      confidenceLevel?: number,
     }
   | {
       kind: 'sampled_distribution',
@@ -3435,13 +3442,20 @@ export class HyperFormula implements TypedEmitter {
       return { kind: 'scalar', value }
     }
 
-    if (value instanceof ConfidenceIntervalNumber) {
+    if (value instanceof DistributionNumber) {
       return {
-        kind: 'confidence_interval',
-        lower: value.getLower(),
-        upper: value.getUpper(),
-        confidenceLevel: value.getConfidenceLevel(),
-        interpretation: value.interpretation,
+        kind: 'distribution',
+        distribution: value.kind,
+        source: value.source,
+        mean: value.mean,
+        variance: value.variance,
+        mu: value.mu,
+        sigma: value.sigma,
+        min: value.min,
+        max: value.max,
+        lower: value.lower,
+        upper: value.upper,
+        confidenceLevel: value.confidenceLevel,
       }
     }
 

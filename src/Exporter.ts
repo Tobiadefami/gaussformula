@@ -7,7 +7,7 @@ import { CellError, ErrorType, SimpleCellAddress } from './Cell'
 import { CellValue, DetailedCellError } from './CellValue'
 import { CellValueChange, ChangeExporter } from './ContentChanges'
 import {
-  ConfidenceIntervalNumber,
+  DistributionNumber,
   EmptyValue,
   InterpreterValue,
   RawInterpreterValue,
@@ -105,7 +105,7 @@ export class Exporter implements ChangeExporter<ExportedChange> {
   public exportValue(value: InterpreterValue): CellValue {
     if (value === EmptyValue) {
       return null
-    } else if (value instanceof ConfidenceIntervalNumber) {
+    } else if (value instanceof DistributionNumber) {
       return value
     } else if (value instanceof SampledDistribution) {
       return value

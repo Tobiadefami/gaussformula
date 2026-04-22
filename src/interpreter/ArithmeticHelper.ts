@@ -10,10 +10,10 @@ import {
   getCellValueType,
 } from '../Cell'
 import {
-  ConfidenceIntervalNumber,
   CurrencyNumber,
   DateNumber,
   DateTimeNumber,
+  DistributionNumber,
   EmptyValue,
   ExtendedNumber,
   InternalNoErrorScalarValue,
@@ -286,21 +286,13 @@ export class ArithmeticHelper {
     )
   }
   
-  /**
-   * Check if a value is an uncertain/distribution type
-   * Only ConfidenceIntervalNumber (input) and SampledDistribution (output) exist now
-   */
   private isUncertain(value: ExtendedNumber): boolean {
-    return value instanceof ConfidenceIntervalNumber ||
+    return value instanceof DistributionNumber ||
            value instanceof SampledDistribution
   }
   
-  /**
-   * Check if a value has uncertainty (for comparison operations)
-   * Works with broader InternalNoErrorScalarValue type
-   */
   private hasUncertainty(value: InternalNoErrorScalarValue): boolean {
-    return value instanceof ConfidenceIntervalNumber ||
+    return value instanceof DistributionNumber ||
            value instanceof SampledDistribution
   }
 
@@ -346,8 +338,7 @@ export class ArithmeticHelper {
    * Note: SampledDistribution is not an input type - only return type
    */
   private getSamplesFromValue(value: ExtendedNumber): number[] {
-    if (value instanceof ConfidenceIntervalNumber) {
-      // CI is our only uncertain input type - use its toSamples method
+    if (value instanceof DistributionNumber) {
       return value.toSamples(this.config)
     } else if (value instanceof SampledDistribution) {
       // SampledDistribution from previous calculations
@@ -767,9 +758,8 @@ export class ArithmeticHelper {
       case NumberType.NUMBER_SAMPLED:
         // For sampled distributions, create a new one with a single sample
         return new SampledDistribution([value], this.config)
-      case NumberType.NUMBER_CONFIDENCE_INTERVAL:
-        // For a single value, create a CI with zero width
-        return new ConfidenceIntervalNumber(value, value, 90, { format })
+      case NumberType.NUMBER_DISTRIBUTION:
+        return DistributionNumber.normal(value, 0, { format })
    
       default:
         throw new Error(`Unsupported number type: ${type}`)
@@ -876,9 +866,7 @@ export class ArithmeticHelper {
    * Get the mean/expected value from any type (uncertain or scalar)
    */
   private getMeanValue(value: InternalNoErrorScalarValue): number {
-    if (value instanceof ConfidenceIntervalNumber) {
-      return value.getMedian() // Use the median (which is stored in .val)
-    } else if (value instanceof SampledDistribution) {
+    if (value instanceof SampledDistribution) {
       return value.getMean()
     } else if (typeof value === 'number') {
       return value
@@ -1208,10 +1196,9 @@ function inferExtendedNumberTypeAdditive(
   const { type: rightType, format: rightFormat } =
     getTypeFormatOfExtendedNumber(rightArg)
 
-  // If either operand is any distribution type, the result should be a SampledDistribution
   if (
-    leftType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
-    rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
+    leftType === NumberType.NUMBER_DISTRIBUTION ||
+    rightType === NumberType.NUMBER_DISTRIBUTION ||
     leftType === NumberType.NUMBER_SAMPLED ||
     rightType === NumberType.NUMBER_SAMPLED
   ) {
@@ -1266,10 +1253,9 @@ function inferExtendedNumberTypeMultiplicative(
   let { type: rightType, format: rightFormat } =
     getTypeFormatOfExtendedNumber(rightArg)
 
-  // If either operand is a ConfidenceInterval or SampledDistribution, the result should be a SampledDistribution
   if (
-    leftType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
-    rightType === NumberType.NUMBER_CONFIDENCE_INTERVAL ||
+    leftType === NumberType.NUMBER_DISTRIBUTION ||
+    rightType === NumberType.NUMBER_DISTRIBUTION ||
     leftType === NumberType.NUMBER_SAMPLED ||
     rightType === NumberType.NUMBER_SAMPLED
   ) {

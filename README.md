@@ -11,7 +11,7 @@
 
 ## About GaussFormula
 
-**GaussFormula** is a headless spreadsheet engine for JavaScript and TypeScript, designed for business and scientific web applications. It is a fork of HyperFormula with a major new feature: **native support for Gaussian numbers**—values with uncertainty, represented as `N(mean, variance)`.
+**GaussFormula** is a headless spreadsheet engine for JavaScript and TypeScript, designed for business and scientific web applications. It is a fork of HyperFormula with native support for uncertainty through explicit probability distributions such as `N(mean, variance)`, `LN(mu, sigma)`, `U(min, max)`, `N.CI(lower, upper, confidence)`, and `LN.CI(lower, upper, confidence)`.
 
 GaussFormula is ideal for:
 - Custom spreadsheet-like apps
@@ -27,7 +27,7 @@ GaussFormula is ideal for:
 - **Function syntax compatible with Microsoft Excel and Google Sheets**
 - High-speed parsing and evaluation of spreadsheet formulas
 - ~400 built-in functions
-- **Native support for Gaussian numbers**: work with values that include uncertainty, and propagate it through calculations
+- **Native support for uncertainty**: work with explicit probability distributions and propagate uncertainty through sampled calculations
 - Support for custom functions
 - Node.js and browser support
 - Undo/redo, CRUD operations, clipboard, named expressions, data sorting
@@ -54,67 +54,39 @@ import { HyperFormula } from 'gaussformula';
 // Create a GaussFormula instance
 const gf = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' });
 
-// Add a sheet and enter Gaussian numbers
+// Add a sheet and enter an explicit uncertainty input
 const sheetName = gf.addSheet('Demo');
 const sheetId = gf.getSheetId(sheetName);
 
-gf.setCellContents({ sheet: sheetId, row: 0, col: 0 }, [['N(1, 2)', '3', '=A1+B1', '=A1*B1']]);
+gf.setCellContents({ sheet: sheetId, row: 0, col: 0 }, [['N.CI(1, 2, 0.95)', '3', '=A1+B1', '=A1*B1']]);
 
-console.log(gf.getCellValue({ sheet: sheetId, row: 0, col: 2 })); // GaussianNumber { mean: 4, variance: 2 }
-console.log(gf.getCellValue({ sheet: sheetId, row: 0, col: 3 })); // GaussianNumber { mean: 3, variance: 18 }
+console.log(gf.getCellValue({ sheet: sheetId, row: 0, col: 2 })); // SampledDistribution
+console.log(gf.getCellValue({ sheet: sheetId, row: 0, col: 3 })); // SampledDistribution
 ```
 
 ---
 
-## What’s Unique: Gaussian Number Support
+## What’s Unique: Distribution Support
 
-GaussFormula extends HyperFormula with **first-class support for Gaussian numbers**—values with uncertainty, written as `N(mean, variance)`. These numbers are parsed, stored, and propagated through arithmetic operations according to rules of error propagation.
+GaussFormula extends HyperFormula with first-class support for explicit uncertainty inputs. Distribution inputs are parsed, stored, and propagated through arithmetic using Monte Carlo sampling.
+
+### Distribution notation
+
+- `N(mean, variance)` uses normal-distribution parameters directly.
+- `LN(mu, sigma)` uses log-space parameters: if `X ~ LN(mu, sigma)`, then `ln(X) ~ N(mu, sigma^2)`. `mu` and `sigma` are not the mean and standard deviation of `X`.
+- Prefer `LN.CI(lower, upper, confidence)` for user-facing lognormal inputs because the bounds are in the original value scale.
+- `N.CI(lower, upper, confidence)` derives a normal distribution from a value-scale confidence interval.
+- `U(min, max)` represents a uniform range on the original value scale.
 
 **Example:**
 
-- `A1 -> N(1,2)`
-- `=A1 + 3` results in `N(4, 2)`
-- `=A1 * 3` results in `N(3, 18)`
+- `A1 -> N.CI(1, 2, 0.95)`
+- `=A1 + 3` returns a sampled distribution
+- `=A1 * 3` returns a sampled distribution
 
-See the [technical documentation below](#technical-details-of-gaussian-number-support) for a deep dive into the implementation.
+## Technical Notes
 
----
-
-## Technical Details of Gaussian Number Support
-
-GaussFormula introduces:
-- A new `GaussianNumber` class and type system integration
-- Parser and lexer changes to recognize `N(mean, variance)` syntax
-- Interpreter and arithmetic logic for correct error propagation
-- Serialization and export logic for Gaussian numbers
-- Comprehensive tests for parsing, arithmetic, and error handling
-
-<details>
-<summary>Click to expand technical details</summary>
-
-# Gaussian Number Support in GaussFormula
-
-## Overview
-
-This document provides a detailed technical analysis of the changes made to implement Gaussian number support in GaussFormula. Gaussian numbers represent values with uncertainty and are represented as `N(mean, variance)` where:
-- `mean` is the central value
-- `variance` is a measure of the uncertainty
-
-| File | Changes | Purpose |
-|------|---------|---------|
-| `src/interpreter/InterpreterValue.ts` | Added `GaussianNumber` class and `NUMBER_GAUSSIAN` enum value | Core representation of Gaussian numbers |
-| `src/parser/Ast.ts` | Added `GAUSSIAN_NUMBER` to `AstNodeType` enum and `GaussianNumberAst` interface | AST representation for parsing |
-| `src/parser/FormulaParser.ts` | Added Gaussian number parsing | Recognize and parse N(mean, variance) syntax |
-| `src/interpreter/Interpreter.ts` | Added case for `AstNodeType.GAUSSIAN_NUMBER` | Handle Gaussian AST nodes during evaluation |
-| `src/interpreter/ArithmeticHelper.ts` | Added arithmetic operations | Implement math operations for Gaussian numbers |
-| `src/Exporter.ts` | Modified `exportValue` | Export Gaussian numbers as cell values |
-| `src/CellValue.ts` | Added `GaussianNumber` to types | Type system integration |
-| `src/Serialization.ts` | Added formatting for Gaussian numbers | Proper string representation |
-| `test/interpreter/gaussian-arithmetic.spec.ts` | Modified tests | Test Gaussian arithmetic operations |
-
-... (full technical details as in the original documentation) ...
-
-</details>
+GaussFormula represents explicit uncertainty inputs with `DistributionNumber` and arithmetic outputs with `SampledDistribution`. Arithmetic over distributions uses Monte Carlo sampling instead of closed-form distribution algebra.
 
 ---
 

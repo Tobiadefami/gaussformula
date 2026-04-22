@@ -41,7 +41,7 @@ import {
   SourceLocationHasArrayError,
   TargetLocationHasArrayError
 } from './errors'
-import {ConfidenceIntervalNumber, EmptyValue, getRawValue} from './interpreter/InterpreterValue'
+import {DistributionNumber, EmptyValue, getRawValue} from './interpreter/InterpreterValue'
 import {samplingIdentityFromAddress} from './interpreter/SamplingIdentity'
 import {LazilyTransformingAstService} from './LazilyTransformingAstService'
 import {ColumnSearchStrategy} from './Lookup/SearchStrategy'
@@ -931,7 +931,9 @@ function attachSamplingIdentity(
   value: RawAndParsedValue,
   address: SimpleCellAddress
 ): RawAndParsedValue {
-  if (!(value.parsedValue instanceof ConfidenceIntervalNumber)) {
+  if (
+    !(value.parsedValue instanceof DistributionNumber)
+  ) {
     return value
   }
 

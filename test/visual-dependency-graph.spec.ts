@@ -1,4 +1,4 @@
-import { ConfidenceIntervalNumber, GaussFormula } from '../src'
+import { DistributionNumber, GaussFormula } from '../src'
 import type { VisualDependencyGraph } from '../src'
 
 describe('GaussFormula.getVisualDependencyGraph', () => {
@@ -56,8 +56,8 @@ describe('GaussFormula.getVisualDependencyGraph', () => {
     expect(graph.nodes.some((node) => node.address === 'E1')).toBe(false)
   })
 
-  it('returns structured confidence interval and sampled distribution summaries', () => {
-    const engine = GaussFormula.buildFromArray([['CI[10, 20]', '=A1*2']], {
+  it('returns structured distribution and sampled distribution summaries', () => {
+    const engine = GaussFormula.buildFromArray([['N.CI(10, 20, 0.95)', '=A1*2']], {
       sampleSize: 1000,
     })
 
@@ -66,13 +66,14 @@ describe('GaussFormula.getVisualDependencyGraph', () => {
     expect(graph.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          address: 'A1',
-          value: expect.objectContaining({
-            kind: 'confidence_interval',
+            address: 'A1',
+            value: expect.objectContaining({
+            kind: 'distribution',
+            distribution: 'normal',
+            source: 'ci',
             lower: 10,
             upper: 20,
             confidenceLevel: 95,
-            interpretation: 'normal',
           }),
         }),
         expect.objectContaining({
@@ -87,17 +88,17 @@ describe('GaussFormula.getVisualDependencyGraph', () => {
     )
   })
 
-  it('preserves programmatic confidence interval interpretations in graph summaries', () => {
-    const engine = GaussFormula.buildFromArray([['CI[10, 20]', undefined, undefined, '=A1+B1+C1']], {
+  it('preserves programmatic distribution kinds in graph summaries', () => {
+    const engine = GaussFormula.buildFromArray([['N(15, 4)', undefined, undefined, '=A1+B1+C1']], {
       sampleSize: 1000,
     })
     engine.setCellContents(
       { sheet: 0, row: 0, col: 1 },
-      new ConfidenceIntervalNumber(10, 20, 95, { interpretation: 'uniform' })
+      DistributionNumber.uniform(10, 20)
     )
     engine.setCellContents(
       { sheet: 0, row: 0, col: 2 },
-      new ConfidenceIntervalNumber(10, 20, 95, { interpretation: 'lognormal' })
+      DistributionNumber.lognormalFromCI(10, 20, 95)
     )
 
     const graph: VisualDependencyGraph = engine.getVisualDependencyGraph()
@@ -105,24 +106,27 @@ describe('GaussFormula.getVisualDependencyGraph', () => {
     expect(graph.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          address: 'A1',
-          value: expect.objectContaining({
-            kind: 'confidence_interval',
-            interpretation: 'normal',
+            address: 'A1',
+            value: expect.objectContaining({
+            kind: 'distribution',
+            distribution: 'normal',
+            source: 'parameters',
           }),
         }),
         expect.objectContaining({
-          address: 'B1',
-          value: expect.objectContaining({
-            kind: 'confidence_interval',
-            interpretation: 'uniform',
+            address: 'B1',
+            value: expect.objectContaining({
+            kind: 'distribution',
+            distribution: 'uniform',
+            source: 'parameters',
           }),
         }),
         expect.objectContaining({
-          address: 'C1',
-          value: expect.objectContaining({
-            kind: 'confidence_interval',
-            interpretation: 'lognormal',
+            address: 'C1',
+            value: expect.objectContaining({
+            kind: 'distribution',
+            distribution: 'lognormal',
+            source: 'ci',
           }),
         }),
       ]),

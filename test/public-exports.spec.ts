@@ -14,4 +14,9 @@ describe('public exports', () => {
     expect(GaussFormulaDefault.GaussFormula).toBe(GaussFormula)
     expect(GaussFormulaDefault.HyperFormula).toBe(GaussFormula)
   })
+
+  it('does not expose legacy confidence interval objects', () => {
+    expect('ConfidenceIntervalNumber' in GaussFormula).toBe(false)
+    expect('ConfidenceIntervalNumber' in GaussFormulaDefault).toBe(false)
+  })
 })
