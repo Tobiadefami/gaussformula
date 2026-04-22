@@ -29,10 +29,9 @@ describe('Function LN', () => {
   })
 
   it('wrong number of arguments', () => {
-    const engine = HyperFormula.buildFromArray([['=LN()', '=LN(1,-1)']])
+    const engine = HyperFormula.buildFromArray([['=LN()']])
 
     expect(engine.getCellValue(adr('A1'))).toEqualError(detailedError(ErrorType.NA, ErrorMessage.WrongArgNumber))
-    expect(engine.getCellValue(adr('B1'))).toEqualError(detailedError(ErrorType.NA, ErrorMessage.WrongArgNumber))
   })
 
   it('use number coercion', () => {

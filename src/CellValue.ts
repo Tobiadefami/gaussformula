@@ -5,7 +5,7 @@
 
 import { CellError, ErrorType } from './Cell'
 import {
-  ConfidenceIntervalNumber,
+  DistributionNumber,
   SampledDistribution,
 } from './interpreter/InterpreterValue'
 
@@ -16,7 +16,7 @@ export type NoErrorCellValue =
   | string
   | boolean
   | null
-  | ConfidenceIntervalNumber
+  | DistributionNumber
   | SampledDistribution
   | SimpleRangeValue
 export type CellValue = NoErrorCellValue | DetailedCellError

@@ -5,10 +5,10 @@
 
 import { CellError, ErrorType } from './Cell'
 import {
-  ConfidenceIntervalNumber,
   CurrencyNumber,
   DateNumber,
   DateTimeNumber,
+  DistributionNumber,
   ExtendedNumber,
   PercentNumber,
   SampledDistribution,
@@ -30,7 +30,7 @@ import { UnableToParseError } from './errors'
 
 export type RawCellContent =
   | Date
-  | ConfidenceIntervalNumber
+  | DistributionNumber
   | string
   | number
   | boolean
@@ -116,7 +116,7 @@ export class CellContentParser {
   public parse(content: RawCellContent): CellContent.Type {
     if (content === undefined || content === null) {
       return CellContent.Empty.getSingletonInstance()
-    } else if (content instanceof ConfidenceIntervalNumber) {
+    } else if (content instanceof DistributionNumber) {
       return new CellContent.Number(content)
     } else if (typeof content === 'number') {
       if (isNumberOverflow(content)) {
@@ -157,35 +157,6 @@ export class CellContentParser {
         return new CellContent.Error(
           this.config.errorMapping[content.toUpperCase()]
         )
-      }
-
-      // Try to parse as confidence interval - support multiple formats
-      // CI[lower, upper], [lower, upper], or "lower to upper"
-      
-      // Format 1: CI[20, 50]
-      let confidenceIntervalMatch =
-        /^CI\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]$/i.exec(content)
-      
-      // Format 2: [20, 50]
-      if (!confidenceIntervalMatch) {
-        confidenceIntervalMatch =
-          /^\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]$/.exec(content)
-      }
-      
-      // Format 3: 20 to 50 (range style)
-      if (!confidenceIntervalMatch) {
-        confidenceIntervalMatch =
-          /^([+-]?\d*\.?\d+)\s+to\s+([+-]?\d*\.?\d+)$/i.exec(content)
-      }
-      
-      if (confidenceIntervalMatch) {
-        const lower = Number(confidenceIntervalMatch[1])
-        const upper = Number(confidenceIntervalMatch[2])
-        if (!isNaN(lower) && !isNaN(upper) && lower <= upper) {
-          return new CellContent.Number(
-            new ConfidenceIntervalNumber(lower, upper, 95)
-          )
-        }
       }
 
       // Try to parse as SampledDistribution

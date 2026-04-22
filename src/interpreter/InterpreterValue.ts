@@ -4,30 +4,15 @@
  */
 
 /**
- * ========================================================================
- * InterpreterValue: CI-First Uncertainty Arithmetic Architecture
- * ========================================================================
- * 
- * This module implements uncertainty arithmetic using confidence intervals:
- * 
- * INPUT TYPES (what can exist in cells):
- * - ConfidenceIntervalNumber: Only uncertain input type ("10 to 20", "[10, 20]", "CI[10, 20]")
- * - SampledDistribution: Results from Monte-Carlo operations (can be used in further operations)
- * - Scalars: Regular numbers, strings, booleans
- * 
- * RETURN TYPE (primary arithmetic results):
- * - SampledDistribution: Results from Monte-Carlo operations
- * 
- * CORE PRINCIPLE:
- * All uncertain arithmetic uses sampling (Monte-Carlo) approach:
- * Input → Samples → Element-wise operations → SampledDistribution result
- * 
- * No closed-form distribution arithmetic - sampling is the source of truth.
+ * Values used by the interpreter, including explicit uncertainty inputs.
+ * Uncertain arithmetic is sampled: input distributions become samples, and
+ * arithmetic over those samples returns SampledDistribution.
  */
 
 import { CellError } from '../Cell'
 import { Config } from '../Config'
 import { SimpleRangeValue } from '../SimpleRangeValue'
+import { normal } from './plugin/3rdparty/jstat/jstat'
 import { createSamplingRandomSource, RandomSource } from './RandomSource'
 
 /**
@@ -125,8 +110,8 @@ export enum NumberType {
   NUMBER_CURRENCY = 'NUMBER_CURRENCY',
   NUMBER_PERCENT = 'NUMBER_PERCENT',
   
-  // Single input distribution type (what users can enter)
-  NUMBER_CONFIDENCE_INTERVAL = 'NUMBER_CONFIDENCE_INTERVAL', // Only uncertain input type
+  // Explicit input distribution type.
+  NUMBER_DISTRIBUTION = 'NUMBER_DISTRIBUTION',
   
   // Output distribution type (arithmetic results only)
   NUMBER_SAMPLED = 'NUMBER_SAMPLED', // Monte-Carlo results
@@ -143,8 +128,8 @@ export const getTypeOfExtendedNumber = (value: ExtendedNumber): NumberType => {
     return NumberType.NUMBER_TIME
   } else if (value instanceof DateTimeNumber) {
     return NumberType.NUMBER_DATETIME
-  } else if (value instanceof ConfidenceIntervalNumber) {
-    return NumberType.NUMBER_CONFIDENCE_INTERVAL
+  } else if (value instanceof DistributionNumber) {
+    return NumberType.NUMBER_DISTRIBUTION
   } else if (value instanceof SampledDistribution) {
     return NumberType.NUMBER_SAMPLED
   } else {
@@ -220,219 +205,250 @@ export function sampleUniformDistribution(
   return Array.from({ length: sampleSize }, () => a + (b - a) * random())
 }
 
-// LogNormalNumber removed - no longer used as input type in unified CI approach
+export type DistributionKind = 'normal' | 'lognormal' | 'uniform'
+export type DistributionSource = 'parameters' | 'ci'
 
-// UniformNumber removed - no longer used as input type in unified CI approach
-
-
-/**
- * Interpretation types for confidence intervals.
- * - 'normal': Treats bounds as symmetric confidence interval (default)
- * - 'uniform': Treats bounds as hard min/max limits  
- * - 'lognormal': Treats bounds as 5th-95th percentiles (positive values only)
- * - 'auto': Automatically detect best interpretation based on range characteristics
- */
-export type CIInterpretation = 'normal' | 'uniform' | 'lognormal' | 'auto'
-
-/**
- * Source format tracking for display purposes
- */
-export type CISourceFormat = 'range' | 'normal' | 'lognormal' | 'uniform'
-
-type ConfidenceIntervalOptions = {
+type DistributionNumberOptions = {
   format?: string,
-  interpretation?: CIInterpretation,
-  sourceFormat?: CISourceFormat,
   samplingIdentity?: string,
+  source?: DistributionSource,
+  confidenceLevel?: number,
+  lower?: number,
+  upper?: number,
 }
 
-/**
- * ConfidenceIntervalNumber represents the primary input type for uncertain values.
- * Users enter "low to high" ranges
- * and the system interprets them according to the specified interpretation.
- * 
- * All arithmetic operations convert this to samples via toSamples() method.
- */
-export class ConfidenceIntervalNumber extends RichNumber {
-  public readonly lower: number
-  public readonly upper: number
-  public readonly confidenceLevel: number
-  public readonly interpretation: CIInterpretation
-  public readonly sourceFormat: CISourceFormat
-  public readonly samplingIdentity?: string
+export function normalizeConfidenceLevel(confidence: number): number {
+  return confidence > 0 && confidence < 1 ? confidence * 100 : confidence
+}
 
-  constructor(
+export function zScoreForConfidence(confidence: number): number {
+  const confidenceLevel = normalizeConfidenceLevel(confidence)
+  const centralProbability = confidenceLevel / 100
+  const upperTailProbability = (1 + centralProbability) / 2
+  return normal.inv(upperTailProbability, 0, 1)
+}
+
+export class DistributionNumber extends RichNumber {
+  public readonly kind: DistributionKind
+  public readonly source: DistributionSource
+  public readonly samplingIdentity?: string
+  public readonly confidenceLevel?: number
+  public readonly lower?: number
+  public readonly upper?: number
+  public readonly mean?: number
+  public readonly variance?: number
+  public readonly mu?: number
+  public readonly sigma?: number
+  public readonly min?: number
+  public readonly max?: number
+
+  private constructor(
+    kind: DistributionKind,
+    params: {
+      mean?: number,
+      variance?: number,
+      mu?: number,
+      sigma?: number,
+      min?: number,
+      max?: number,
+    },
+    options?: DistributionNumberOptions
+  ) {
+    super(DistributionNumber.representativeValue(kind, params), options?.format)
+    this.kind = kind
+    this.source = options?.source ?? 'parameters'
+    this.samplingIdentity = options?.samplingIdentity
+    this.confidenceLevel = options?.confidenceLevel
+    this.lower = options?.lower
+    this.upper = options?.upper
+    this.mean = params.mean
+    this.variance = params.variance
+    this.mu = params.mu
+    this.sigma = params.sigma
+    this.min = params.min
+    this.max = params.max
+  }
+
+  public static normal(
+    mean: number,
+    variance: number,
+    options?: DistributionNumberOptions
+  ): DistributionNumber {
+    return new DistributionNumber('normal', { mean, variance }, options)
+  }
+
+  public static lognormal(
+    mu: number,
+    sigma: number,
+    options?: DistributionNumberOptions
+  ): DistributionNumber {
+    return new DistributionNumber('lognormal', { mu, sigma }, options)
+  }
+
+  public static uniform(
+    min: number,
+    max: number,
+    options?: DistributionNumberOptions
+  ): DistributionNumber {
+    return new DistributionNumber('uniform', { min, max }, options)
+  }
+
+  public static normalFromCI(
     lower: number,
     upper: number,
-    confidenceLevel: number = 95, // Default to 95%
-    options?: ConfidenceIntervalOptions
-  ) {
-    // Initialize with a temporary value - we'll set the correct median after setting properties
-    super(0, options?.format)
-    this.lower = lower
-    this.upper = upper
-    this.confidenceLevel = confidenceLevel
-    this.sourceFormat = options?.sourceFormat || 'range'
-    this.samplingIdentity = options?.samplingIdentity
-    
-    // Handle auto-detection of interpretation
-    const requestedInterpretation = options?.interpretation || 'auto'
-    this.interpretation = requestedInterpretation === 'auto' 
-      ? this.detectInterpretation(lower, upper)
-      : requestedInterpretation
-    
-    // For lognormal, require positivity
-    if (this.interpretation === 'lognormal' && (lower <= 0 || upper <= 0)) {
-      // Fall back to normal if lognormal is not possible
-      (this as any).interpretation = 'normal'
-    }
-    
-    // Set the correct median value based on interpretation
-    this.val = this.getMedian()
+    confidence: number,
+    options?: DistributionNumberOptions
+  ): DistributionNumber {
+    const confidenceLevel = normalizeConfidenceLevel(confidence)
+    const zScore = zScoreForConfidence(confidenceLevel)
+    const mean = (lower + upper) / 2
+    const std = (upper - lower) / (2 * zScore)
+    return DistributionNumber.normal(mean, std * std, {
+      ...options,
+      source: 'ci',
+      lower,
+      upper,
+      confidenceLevel,
+    })
   }
 
-  /**
-   * Auto-detect the best interpretation based on range characteristics
-   */
-  private detectInterpretation(lower: number, upper: number): CIInterpretation {
-    // Always default to normal for consistency and user clarity
-    return 'normal'
-  }
-
-  public getLower(): number {
-    return this.lower
-  }
-
-  public getUpper(): number {
-    return this.upper
-  }
-
-  public getConfidenceLevel(): number {
-    return this.confidenceLevel
-  }
-
-  /**
-   * Get the median value of this confidence interval.
-   * This is what should be displayed prominently.
-   */
-  public getMedian(): number {
-    switch (this.interpretation) {
-      case 'lognormal':
-        // For log-normal: median = geometric mean of bounds
-        return Math.sqrt(this.lower * this.upper)
-      case 'uniform':
-      case 'normal':
-      default:
-        // For normal/uniform: median = arithmetic mean
-        return (this.lower + this.upper) / 2
-    }
+  public static lognormalFromCI(
+    lower: number,
+    upper: number,
+    confidence: number,
+    options?: DistributionNumberOptions
+  ): DistributionNumber {
+    const confidenceLevel = normalizeConfidenceLevel(confidence)
+    const zScore = zScoreForConfidence(confidenceLevel)
+    const lnLower = Math.log(lower)
+    const lnUpper = Math.log(upper)
+    const mu = (lnLower + lnUpper) / 2
+    const sigma = (lnUpper - lnLower) / (2 * zScore)
+    return DistributionNumber.lognormal(mu, sigma, {
+      ...options,
+      source: 'ci',
+      lower,
+      upper,
+      confidenceLevel,
+    })
   }
 
   public getDetailedType(): NumberType {
-    return NumberType.NUMBER_CONFIDENCE_INTERVAL
+    return NumberType.NUMBER_DISTRIBUTION
   }
 
   public fromNumber(val: number): this {
-    // When creating a new confidence interval from a number,
-    // we need to maintain the same width and confidence level
-    const width = this.upper - this.lower
-    const newLower = val - width / 2
-    const newUpper = val + width / 2
-    return new ConfidenceIntervalNumber(
-      newLower,
-      newUpper,
-      this.confidenceLevel,
-      {
-        format: this.format,
-        interpretation: this.interpretation,
-        sourceFormat: this.sourceFormat,
-        samplingIdentity: this.samplingIdentity,
+    if (val === this.val) {
+      switch (this.kind) {
+        case 'normal':
+          return DistributionNumber.normal(this.mean ?? this.val, this.variance ?? 0, this.copyOptions(this.samplingIdentity)) as this
+        case 'lognormal':
+          return DistributionNumber.lognormal(this.mu ?? 0, this.sigma ?? 0, this.copyOptions(this.samplingIdentity)) as this
+        case 'uniform':
+          return DistributionNumber.uniform(this.min ?? this.val, this.max ?? this.val, this.copyOptions(this.samplingIdentity)) as this
       }
-    ) as this
+    }
+
+    switch (this.kind) {
+      case 'normal':
+        return DistributionNumber.normal(val, this.variance ?? 0, {
+          format: this.format,
+          samplingIdentity: this.samplingIdentity,
+          source: this.source,
+          confidenceLevel: this.confidenceLevel,
+          lower: this.lower,
+          upper: this.upper,
+        }) as this
+      case 'lognormal':
+        return DistributionNumber.lognormal(Math.log(Math.max(val, Number.MIN_VALUE)), this.sigma ?? 0, {
+          format: this.format,
+          samplingIdentity: this.samplingIdentity,
+          source: this.source,
+          confidenceLevel: this.confidenceLevel,
+          lower: this.lower,
+          upper: this.upper,
+        }) as this
+      case 'uniform': {
+        const currentCenter = ((this.min ?? 0) + (this.max ?? 0)) / 2
+        const delta = val - currentCenter
+        return DistributionNumber.uniform((this.min ?? 0) + delta, (this.max ?? 0) + delta, {
+          format: this.format,
+          samplingIdentity: this.samplingIdentity,
+          source: this.source,
+          confidenceLevel: this.confidenceLevel,
+          lower: this.lower,
+          upper: this.upper,
+        }) as this
+      }
+    }
   }
 
-  public withSamplingIdentity(samplingIdentity: string): ConfidenceIntervalNumber {
-    return new ConfidenceIntervalNumber(
-      this.lower,
-      this.upper,
-      this.confidenceLevel,
-      {
-        format: this.format,
-        interpretation: this.interpretation,
-        sourceFormat: this.sourceFormat,
-        samplingIdentity,
-      }
-    )
+  public withSamplingIdentity(samplingIdentity: string): DistributionNumber {
+    switch (this.kind) {
+      case 'normal':
+        return DistributionNumber.normal(this.mean ?? this.val, this.variance ?? 0, this.copyOptions(samplingIdentity))
+      case 'lognormal':
+        return DistributionNumber.lognormal(this.mu ?? 0, this.sigma ?? 0, this.copyOptions(samplingIdentity))
+      case 'uniform':
+        return DistributionNumber.uniform(this.min ?? this.val, this.max ?? this.val, this.copyOptions(samplingIdentity))
+    }
   }
-  
-  /**
-   * Generate samples according to the interpretation of this confidence interval.
-   * This is the core approach: CI → samples → arithmetic → result
-   */
+
   public toSamples(config?: Config): number[] {
     const sampleSize = config?.sampleSize || Config.defaultConfig.sampleSize
     const random = createSamplingRandomSource(
       config?.simulationSeed,
       this.samplingIdentity
     )
-    
-    switch (this.interpretation) {
-      case 'normal': {
-        // Treat lower..upper as symmetric CI around mean
-        // For 90% CI: z = 1.645, for 95% CI: z = 1.96
-        const zScore = this.getZScoreForConfidence()
-        const mean = (this.lower + this.upper) / 2
-        const std = (this.upper - this.lower) / (2 * zScore)
-        const variance = std * std
-        return sampleNormalDistribution(mean, variance, sampleSize, random)
-      }
-      
-      case 'uniform': {
-        // Hard bounds: sample uniformly on [lower, upper]
-        return sampleUniformDistribution(this.lower, this.upper, sampleSize, random)
-      }
-      
+
+    switch (this.kind) {
+      case 'normal':
+        return sampleNormalDistribution(this.mean ?? 0, this.variance ?? 0, sampleSize, random)
       case 'lognormal': {
-        // Treat lower..upper as 5th & 95th percentiles of lognormal
-        // We need to solve for μ and σ of the underlying normal distribution
-        // For lognormal: P(X < x) = Φ((ln(x) - μ) / σ)
-        // where Φ is the standard normal CDF
-        
-        // For 5th percentile: Φ((ln(lower) - μ) / σ) = 0.05 → (ln(lower) - μ) / σ = -1.645
-        // For 95th percentile: Φ((ln(upper) - μ) / σ) = 0.95 → (ln(upper) - μ) / σ = 1.645
-        
-        const lnLower = Math.log(this.lower)
-        const lnUpper = Math.log(this.upper)
-        
-        // From the two equations:
-        // lnLower = μ - 1.645σ
-        // lnUpper = μ + 1.645σ
-        // Solving: μ = (lnLower + lnUpper) / 2, σ = (lnUpper - lnLower) / 3.29
-        
-        const mu = (lnLower + lnUpper) / 2
-        const sigma = (lnUpper - lnLower) / 3.29 // 3.29 = 2 * 1.645
-        const variance = sigma * sigma
-        
-        return sampleLogNormalDistribution(mu, variance, sampleSize, random)
+        const sigma = this.sigma ?? 0
+        return sampleLogNormalDistribution(this.mu ?? 0, sigma * sigma, sampleSize, random)
       }
-      
-      default:
-        throw new Error(`Unknown interpretation: ${this.interpretation}`)
+      case 'uniform':
+        return sampleUniformDistribution(this.min ?? 0, this.max ?? 0, sampleSize, random)
     }
   }
-  
-  private getZScoreForConfidence(): number {
-    // Common confidence levels and their z-scores
-    const zScores: { [key: number]: number } = {
-      90: 1.645,
-      95: 1.96,
-      99: 2.576
+
+  private copyOptions(samplingIdentity?: string): DistributionNumberOptions {
+    return {
+      format: this.format,
+      samplingIdentity,
+      source: this.source,
+      confidenceLevel: this.confidenceLevel,
+      lower: this.lower,
+      upper: this.upper,
     }
-    return zScores[this.confidenceLevel] || 1.645 // Default to 90%
   }
 
-
+  private static representativeValue(
+    kind: DistributionKind,
+    params: {
+      mean?: number,
+      variance?: number,
+      mu?: number,
+      sigma?: number,
+      min?: number,
+      max?: number,
+    }
+  ): number {
+    switch (kind) {
+      case 'normal':
+        return params.mean ?? 0
+      case 'lognormal': {
+        const mu = params.mu ?? 0
+        const sigma = params.sigma ?? 0
+        return Math.exp(mu + (sigma * sigma) / 2)
+      }
+      case 'uniform':
+        return ((params.min ?? 0) + (params.max ?? 0)) / 2
+    }
+  }
 }
+
 
 /**
  * SampledDistribution represents the result of Monte-Carlo arithmetic operations.

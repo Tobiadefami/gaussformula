@@ -5,7 +5,7 @@
 
 import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
-import {InterpreterValue} from '../InterpreterValue'
+import {DistributionNumber, InterpreterValue} from '../InterpreterValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
 export class LogarithmPlugin extends FunctionPlugin implements FunctionPluginTypecheck<LogarithmPlugin> {
@@ -27,7 +27,8 @@ export class LogarithmPlugin extends FunctionPlugin implements FunctionPluginTyp
     'LN': {
       method: 'ln',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER}
+        {argumentType: FunctionArgumentType.NUMBER},
+        {argumentType: FunctionArgumentType.NUMBER, optionalArg: true, minValue: 0},
       ]
     },
   }
@@ -43,6 +44,13 @@ export class LogarithmPlugin extends FunctionPlugin implements FunctionPluginTyp
   }
 
   public ln(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('LN'), Math.log)
+    return this.runFunction(ast.args, state, this.metadata('LN'),
+      (arg: number, sigma?: number) => {
+        if (sigma === undefined) {
+          return Math.log(arg)
+        }
+        return DistributionNumber.lognormal(arg, sigma)
+      }
+    )
   }
 }
