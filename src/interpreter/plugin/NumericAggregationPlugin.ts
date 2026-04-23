@@ -12,10 +12,11 @@ import {Ast, AstNodeType, CellRangeAst, ProcedureAst} from '../../parser'
 import {ColumnRangeAst, RowRangeAst} from '../../parser/Ast'
 import {coerceBooleanToNumber} from '../ArithmeticHelper'
 import {InterpreterState} from '../InterpreterState'
-import {EmptyValue, ExtendedNumber, getRawValue, InternalScalarValue, isExtendedNumber} from '../InterpreterValue'
+import {EmptyValue, ExtendedNumber, getRawValue, InternalScalarValue, InterpreterValue, isExtendedNumber, SampledDistribution} from '../InterpreterValue'
 import {SimpleRangeValue} from '../../SimpleRangeValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 import {RangeVertex} from '../../DependencyGraph'
+import {isUncertainValue, samplesForValue} from '../UncertaintyValue'
 
 export type BinaryOperation<T> = (left: T, right: T) => T
 
@@ -241,6 +242,10 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   public sumsq(ast: ProcedureAst, state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareAggregate(ast.args, state, 0, this.addWithEpsilonRaw, (value) => value * value, strictlyNumbers)
+    if (sampled !== undefined) {
+      return sampled
+    }
     return this.reduce(ast.args, state, 0, 'SUMSQ', this.addWithEpsilonRaw, (arg: ExtendedNumber) => Math.pow(getRawValue(arg), 2), strictlyNumbers)
   }
 
@@ -436,6 +441,11 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   private doAverage(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareAverage(args, state, strictlyNumbers)
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     const result = this.reduceAggregate(args, state)
 
     if (result instanceof CellError) {
@@ -503,6 +513,11 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   private doMax(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareAggregate(args, state, Number.NEGATIVE_INFINITY, Math.max, (value) => value, strictlyNumbers)
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     const value = this.reduce(args, state, Number.NEGATIVE_INFINITY, 'MAX',
       (left: number, right: number) => Math.max(left, right),
       getRawValue, strictlyNumbers
@@ -512,6 +527,11 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   private doMin(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareAggregate(args, state, Number.POSITIVE_INFINITY, Math.min, (value) => value, strictlyNumbers)
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     const value = this.reduce(args, state, Number.POSITIVE_INFINITY, 'MIN',
       (left: number, right: number) => Math.min(left, right),
       getRawValue, strictlyNumbers
@@ -521,14 +541,139 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   private doSum(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareAggregate(args, state, 0, this.addWithEpsilonRaw, (value) => value, strictlyNumbers)
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     return this.reduce(args, state, 0, 'SUM', this.addWithEpsilonRaw, getRawValue, strictlyNumbers)
   }
 
   private doProduct(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareAggregate(args, state, 1, (left, right) => left * right, (value) => value, strictlyNumbers)
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     return this.reduce(args, state, 1, 'PRODUCT', (left, right) => left * right, getRawValue, strictlyNumbers)
   }
 
   private addWithEpsilonRaw = (left: number, right: number) => this.arithmeticHelper.addWithEpsilonRaw(left, right)
+
+  private sampleAwareAggregate(
+    args: Ast[],
+    state: InterpreterState,
+    initialAccValue: number,
+    reducingFunction: BinaryOperation<number>,
+    mapSample: (sample: number) => number,
+    coercionFunction: coercionOperation,
+  ): SampledDistribution | CellError | undefined {
+    const values = this.collectAggregateValues(args, state, coercionFunction)
+    if (values instanceof CellError) {
+      return values
+    }
+
+    if (!values.some(isUncertainValue)) {
+      return undefined
+    }
+
+    const sampleArrays = values.map((value) => samplesForValue(value, this.config))
+    const sampleCount = Math.max(...sampleArrays.map((samples) => samples.length), this.config.sampleSize)
+    const resultSamples = Array.from({length: sampleCount}, (_, sampleIndex) =>
+      sampleArrays.reduce((acc, samples) => {
+        const sample = samples[sampleIndex % samples.length]
+        return reducingFunction(acc, mapSample(sample))
+      }, initialAccValue)
+    )
+
+    return new SampledDistribution(resultSamples, this.config)
+  }
+
+  private sampleAwareAverage(
+    args: Ast[],
+    state: InterpreterState,
+    coercionFunction: coercionOperation,
+  ): SampledDistribution | CellError | undefined {
+    const values = this.collectAggregateValues(args, state, coercionFunction)
+    if (values instanceof CellError) {
+      return values
+    }
+
+    if (!values.some(isUncertainValue)) {
+      return undefined
+    }
+
+    if (values.length === 0) {
+      return new CellError(ErrorType.DIV_BY_ZERO)
+    }
+
+    const sampleArrays = values.map((value) => samplesForValue(value, this.config))
+    const sampleCount = Math.max(...sampleArrays.map((samples) => samples.length), this.config.sampleSize)
+    const resultSamples = Array.from({length: sampleCount}, (_, sampleIndex) => {
+      const sum = sampleArrays.reduce((acc, samples) => {
+        return acc + samples[sampleIndex % samples.length]
+      }, 0)
+      return sum / sampleArrays.length
+    })
+
+    return new SampledDistribution(resultSamples, this.config)
+  }
+
+  private collectAggregateValues(
+    args: Ast[],
+    state: InterpreterState,
+    coercionFunction: coercionOperation,
+  ): ExtendedNumber[] | CellError {
+    const values: ExtendedNumber[] = []
+
+    for (const arg of args) {
+      const evaluated = this.evaluateAst(arg, state)
+      const collected = this.collectEvaluatedAggregateValues(arg, evaluated, coercionFunction)
+      if (collected instanceof CellError) {
+        return collected
+      }
+      values.push(...collected)
+    }
+
+    return values
+  }
+
+  private collectEvaluatedAggregateValues(
+    arg: Ast,
+    evaluated: InterpreterValue,
+    coercionFunction: coercionOperation,
+  ): ExtendedNumber[] | CellError {
+    if (evaluated instanceof SimpleRangeValue) {
+      return this.collectScalarAggregateValues(
+        Array.from(evaluated.valuesFromTopLeftCorner()),
+        coercionFunction,
+      )
+    }
+
+    const scalarValue = arg.type === AstNodeType.CELL_REFERENCE
+      ? evaluated
+      : this.coerceScalarToNumberOrError(evaluated)
+    return this.collectScalarAggregateValues([scalarValue], coercionFunction)
+  }
+
+  private collectScalarAggregateValues(
+    scalarValues: InternalScalarValue[],
+    coercionFunction: coercionOperation,
+  ): ExtendedNumber[] | CellError {
+    const values: ExtendedNumber[] = []
+
+    for (const scalarValue of scalarValues) {
+      const coerced = coercionFunction(scalarValue)
+      if (coerced instanceof CellError) {
+        return coerced
+      }
+      if (coerced !== undefined) {
+        values.push(coerced)
+      }
+    }
+
+    return values
+  }
 
   /**
    * Reduces procedure arguments with given reducing function

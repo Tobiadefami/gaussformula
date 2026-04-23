@@ -41,6 +41,7 @@ import { Maybe } from '../Maybe'
 import { NumberLiteralHelper } from '../NumberLiteralHelper'
 import { SimpleRangeValue } from '../SimpleRangeValue'
 import { collatorFromConfig } from '../StringHelper'
+import {isUncertainValue, samplesForValue} from './UncertaintyValue'
 
 import Collator = Intl.Collator
 
@@ -247,7 +248,7 @@ export class ArithmeticHelper {
 
   public pow = (left: ExtendedNumber, right: ExtendedNumber) => {
     // Check if either operand is uncertain (any distribution type)
-    if (this.isUncertain(left) || this.isUncertain(right)) {
+    if (isUncertainValue(left) || isUncertainValue(right)) {
       return this.powDistributions(left, right)
     }
     return Math.pow(getRawValue(left), getRawValue(right))
@@ -276,7 +277,7 @@ export class ArithmeticHelper {
     right: ExtendedNumber
   ): ExtendedNumber => {
     // Check if either operand is uncertain (any distribution type)
-    if (this.isUncertain(left) || this.isUncertain(right)) {
+    if (isUncertainValue(left) || isUncertainValue(right)) {
       return this.addDistributions(left, right)
     }
     const typeOfResult = inferExtendedNumberTypeAdditive(left, right)
@@ -286,17 +287,6 @@ export class ArithmeticHelper {
     )
   }
   
-  private isUncertain(value: ExtendedNumber): boolean {
-    return value instanceof DistributionNumber ||
-           value instanceof SampledDistribution
-  }
-  
-  private hasUncertainty(value: InternalNoErrorScalarValue): boolean {
-    return value instanceof DistributionNumber ||
-           value instanceof SampledDistribution
-  }
-
-
   /**
    * ========================================================================
    * Distribution Arithmetic Helper Functions for Sampling-Driven Operations
@@ -312,8 +302,8 @@ export class ArithmeticHelper {
     right: ExtendedNumber,
     op: (a: number, b: number) => number | null
   ): number[] {
-    const leftSamples = this.getSamplesFromValue(left)
-    const rightSamples = this.getSamplesFromValue(right)
+    const leftSamples = samplesForValue(left, this.config)
+    const rightSamples = samplesForValue(right, this.config)
     
     // Ensure both arrays have the same length
     const maxLength = Math.max(leftSamples.length, rightSamples.length)
@@ -332,26 +322,6 @@ export class ArithmeticHelper {
   }
 
 
-  /**
-   * Helper to extract samples from any extended number type
-   * This is the core unification: everything becomes samples for arithmetic
-   * Note: SampledDistribution is not an input type - only return type
-   */
-  private getSamplesFromValue(value: ExtendedNumber): number[] {
-    if (value instanceof DistributionNumber) {
-      return value.toSamples(this.config)
-    } else if (value instanceof SampledDistribution) {
-      // SampledDistribution from previous calculations
-      return value.getSamples()
-    } else {
-      // For scalar values, create an array with the same sample size as configured
-      const sampleSize = this.config.sampleSize
-      const scalarValue = getRawValue(value)
-      return Array(sampleSize).fill(scalarValue)
-    }
-  }
-
-
   private addDistributions(
     left: ExtendedNumber,
     right: ExtendedNumber
@@ -362,9 +332,9 @@ export class ArithmeticHelper {
   }
 
   public unaryMinus = (arg: ExtendedNumber): ExtendedNumber => {
-    if (this.isUncertain(arg)) {
+    if (isUncertainValue(arg)) {
       // For all uncertain distributions, use sampling
-      const samples = this.getSamplesFromValue(arg)
+      const samples = samplesForValue(arg, this.config)
       const negatedSamples = samples.map(s => -s)
       return new SampledDistribution(negatedSamples, this.config)
     }
@@ -374,9 +344,9 @@ export class ArithmeticHelper {
   public unaryPlus = (arg: InternalScalarValue): InternalScalarValue => arg
 
   public unaryPercent = (arg: ExtendedNumber): ExtendedNumber => {
-    if (this.isUncertain(arg)) {
+    if (isUncertainValue(arg)) {
       // For all uncertain distributions, use sampling
-      const samples = this.getSamplesFromValue(arg)
+      const samples = samplesForValue(arg, this.config)
       const percentSamples = samples.map(s => s / 100)
       return new SampledDistribution(percentSamples, this.config)
     }
@@ -421,7 +391,7 @@ export class ArithmeticHelper {
     rightArg: ExtendedNumber
   ): ExtendedNumber => {
     // Check if either operand is uncertain (any distribution type)
-    if (this.isUncertain(leftArg) || this.isUncertain(rightArg)) {
+    if (isUncertainValue(leftArg) || isUncertainValue(rightArg)) {
       return this.subtractDistributions(leftArg, rightArg)
     }
     const typeOfResult = inferExtendedNumberTypeAdditive(leftArg, rightArg)
@@ -448,7 +418,7 @@ export class ArithmeticHelper {
     right: ExtendedNumber
   ): ExtendedNumber => {
     // Check if either operand is uncertain (any distribution type)
-    if (this.isUncertain(left) || this.isUncertain(right)) {
+    if (isUncertainValue(left) || isUncertainValue(right)) {
       return this.multiplyDistributions(left, right)
     }
     const typeOfResult = inferExtendedNumberTypeMultiplicative(left, right)
@@ -473,7 +443,7 @@ export class ArithmeticHelper {
     right: ExtendedNumber
   ): ExtendedNumber | CellError => {
     // Check if either operand is uncertain (any distribution type)
-    if (this.isUncertain(left) || this.isUncertain(right)) {
+    if (isUncertainValue(left) || isUncertainValue(right)) {
       return this.divideDistributions(left, right)
     }
     const rightValue = getRawValue(right)
@@ -493,8 +463,8 @@ export class ArithmeticHelper {
     right: ExtendedNumber
   ): ExtendedNumber | CellError {
     // Get samples to check the original sample count
-    const leftSamples = this.getSamplesFromValue(left)
-    const rightSamples = this.getSamplesFromValue(right)
+    const leftSamples = samplesForValue(left, this.config)
+    const rightSamples = samplesForValue(right, this.config)
     const originalSampleCount = Math.max(leftSamples.length, rightSamples.length)
     
     // Unified Monte-Carlo approach: everything becomes samples
@@ -807,7 +777,7 @@ export class ArithmeticHelper {
     left: InternalNoErrorScalarValue,
     right: InternalNoErrorScalarValue
   ): number {
-    if (this.hasUncertainty(left) || this.hasUncertainty(right)) {
+    if (isUncertainValue(left) || isUncertainValue(right)) {
       return this.compareUncertainValues(left, right)
     }
 
