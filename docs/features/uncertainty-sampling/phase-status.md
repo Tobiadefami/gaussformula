@@ -5,7 +5,7 @@ lost between implementation sessions.
 
 ## Current Status
 
-Phases 1, 2, 3, and 4 are implemented.
+Phases 1, 2, 3, and 4 are implemented. Phase 5 is in progress.
 
 Implemented behavior:
 
@@ -34,6 +34,10 @@ Implemented behavior:
   path.
 - `SWITCH` evaluates uncertain selectors and match values per simulation trial
   and returns `SampledDistribution` when it enters the sampled path.
+- `COUNTIF`, `COUNTIFS`, `SUMIF`, `SUMIFS`, `AVERAGEIF`, `MINIFS`, and
+  `MAXIFS` evaluate criteria per simulation trial and return
+  `SampledDistribution` when uncertainty affects the tested ranges, aggregated
+  ranges, or scalar criteria.
 
 Primary implementation files:
 
@@ -53,6 +57,7 @@ Primary implementation files:
 - `src/interpreter/Interpreter.ts`
 - `src/interpreter/plugin/SimpleArithmertic.ts`
 - `src/interpreter/plugin/BooleanPlugin.ts`
+- `src/interpreter/plugin/ConditionalAggregationPlugin.ts`
 
 Primary tests:
 
@@ -62,6 +67,7 @@ Primary tests:
 - `test/interpreter/sample-aware-pointwise-functions.spec.ts`
 - `test/interpreter/sample-aware-rounding-trigonometry.spec.ts`
 - `test/interpreter/sample-aware-comparisons-and-conditionals.spec.ts`
+- `test/interpreter/sample-aware-conditional-aggregates.spec.ts`
 - Existing aggregate and distribution tests for `SUM`, `AVERAGE`, `MIN`, `MAX`,
   `PRODUCT`, `SUMSQ`, `SUMPRODUCT`, distribution constructors, and distribution
   arithmetic.
@@ -217,7 +223,7 @@ Important design checks:
 
 ## Phase 5: Conditional Aggregates And Filtering
 
-Status: Not started.
+Status: In progress.
 
 Candidate functions:
 
@@ -235,6 +241,16 @@ Policy to implement:
 Conditional aggregate and filtering functions should use sampled conditions when
 the criteria or tested values are uncertain.
 
+Implemented behavior:
+
+- `COUNTIF`, `COUNTIFS`, `SUMIF`, `SUMIFS`, `AVERAGEIF`, `MINIFS`, and
+  `MAXIFS` evaluate sampled criteria per simulation trial.
+- Uncertainty may come from tested ranges, aggregated ranges, or scalar
+  criterion arguments.
+- Deterministic inputs keep the existing scalar path and scalar criterion cache.
+- The sampled path returns `SampledDistribution` for all currently implemented
+  Phase 5 aggregate functions.
+
 Important design checks:
 
 - This phase likely depends on Phase 4 sampled comparison masks.
@@ -242,6 +258,7 @@ Important design checks:
   a value matches.
 - Criteria parsing should not be duplicated; reuse existing criteria logic where
   possible.
+- `FILTER` remains deferred for a later Phase 5 slice.
 
 ## Before Starting A New Phase
 

@@ -4,21 +4,26 @@
  */
 
 import {CellError, ErrorType} from '../../Cell'
+import {Config} from '../../Config'
 import {ErrorMessage} from '../../error-message'
 import {Maybe} from '../../Maybe'
 import {ProcedureAst} from '../../parser/Ast'
 import {Condition, CriterionFunctionCompute} from '../CriterionFunctionCompute'
+import {CriterionPackage} from '../Criterion'
 import {InterpreterState} from '../InterpreterState'
 import {
+  DistributionNumber,
   getRawValue,
   InternalScalarValue,
   InterpreterValue,
   isExtendedNumber,
   RawInterpreterValue,
-  RawScalarValue
+  RawScalarValue,
+  SampledDistribution,
 } from '../InterpreterValue'
 import {SimpleRangeValue} from '../../SimpleRangeValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
+import {isUncertainValue, samplesForValue} from '../UncertaintyValue'
 
 class AverageResult {
   public static empty = new AverageResult(0, 0)
@@ -80,7 +85,7 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
       method: 'sumif',
       parameters: [
         {argumentType: FunctionArgumentType.RANGE},
-        {argumentType: FunctionArgumentType.NOERROR},
+        {argumentType: FunctionArgumentType.NOERROR, passSubtype: true},
         {argumentType: FunctionArgumentType.RANGE, optionalArg: true},
       ],
     },
@@ -88,14 +93,14 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
       method: 'countif',
       parameters: [
         {argumentType: FunctionArgumentType.RANGE},
-        {argumentType: FunctionArgumentType.NOERROR},
+        {argumentType: FunctionArgumentType.NOERROR, passSubtype: true},
       ],
     },
     AVERAGEIF: {
       method: 'averageif',
       parameters: [
         {argumentType: FunctionArgumentType.RANGE},
-        {argumentType: FunctionArgumentType.NOERROR},
+        {argumentType: FunctionArgumentType.NOERROR, passSubtype: true},
         {argumentType: FunctionArgumentType.RANGE, optionalArg: true},
       ],
     },
@@ -104,7 +109,7 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
       parameters: [
         {argumentType: FunctionArgumentType.RANGE},
         {argumentType: FunctionArgumentType.RANGE},
-        {argumentType: FunctionArgumentType.NOERROR},
+        {argumentType: FunctionArgumentType.NOERROR, passSubtype: true},
       ],
       repeatLastArgs: 2,
     },
@@ -112,7 +117,7 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
       method: 'countifs',
       parameters: [
         {argumentType: FunctionArgumentType.RANGE},
-        {argumentType: FunctionArgumentType.NOERROR},
+        {argumentType: FunctionArgumentType.NOERROR, passSubtype: true},
       ],
       repeatLastArgs: 2,
     },
@@ -121,7 +126,7 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
       parameters: [
         {argumentType: FunctionArgumentType.RANGE},
         {argumentType: FunctionArgumentType.RANGE},
-        {argumentType: FunctionArgumentType.NOERROR},
+        {argumentType: FunctionArgumentType.NOERROR, passSubtype: true},
       ],
       repeatLastArgs: 2,
     },
@@ -130,7 +135,7 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
       parameters: [
         {argumentType: FunctionArgumentType.RANGE},
         {argumentType: FunctionArgumentType.RANGE},
-        {argumentType: FunctionArgumentType.NOERROR},
+        {argumentType: FunctionArgumentType.NOERROR, passSubtype: true},
       ],
       repeatLastArgs: 2,
     },
@@ -150,16 +155,28 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
 
     const computeFn = (
       conditionRange: SimpleRangeValue,
-      criterion: RawScalarValue,
+      criterion: InternalScalarValue,
       values: Maybe<SimpleRangeValue>
-    ) => this.computeConditionalAggregationFunction<RawScalarValue>(
-      values ?? conditionRange,
-      [conditionRange, criterion],
-      functionName,
-      0,
-      (left, right) => this.arithmeticHelper.nonstrictadd(left, right),
-      mapToRawScalarValue as (arg: InternalScalarValue) => RawScalarValue,
-    )
+    ) => {
+      const valuesRange = values ?? conditionRange
+      const sampledResult = this.computeSampleAwareConditionalAggregationFunction<RawScalarValue>(
+        valuesRange,
+        [conditionRange, criterion] as [SimpleRangeValue, InternalScalarValue],
+        0,
+        (left, right) => this.arithmeticHelper.nonstrictadd(left, right) as RawScalarValue,
+        mapToRawScalarValue as (arg: InternalScalarValue) => RawScalarValue,
+        (result) => result instanceof CellError ? result : typeof result === 'number' ? result : 0,
+      )
+
+      return sampledResult ?? this.computeConditionalAggregationFunction<RawScalarValue>(
+        valuesRange,
+        [conditionRange, normalizeCriterionForScalarPath(criterion)],
+        functionName,
+        0,
+        (left, right) => this.arithmeticHelper.nonstrictadd(left, right),
+        mapToRawScalarValue as (arg: InternalScalarValue) => RawScalarValue,
+      )
+    }
 
     return this.runFunction(ast.args, state, this.metadata(functionName), computeFn)
   }
@@ -167,14 +184,25 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
   public sumifs(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     const functionName = 'SUMIFS'
 
-    const computeFn = (values: SimpleRangeValue, ...args: unknown[]) => this.computeConditionalAggregationFunction<RawScalarValue>(
-      values,
-      args as RawInterpreterValue[],
-      functionName,
-      0,
-      (left, right) => this.arithmeticHelper.nonstrictadd(left, right),
-      mapToRawScalarValue as (arg: InternalScalarValue) => RawScalarValue,
-    )
+    const computeFn = (values: SimpleRangeValue, ...args: unknown[]) => {
+      const sampledResult = this.computeSampleAwareConditionalAggregationFunction<RawScalarValue>(
+        values,
+        args as (SimpleRangeValue | InternalScalarValue)[],
+        0,
+        (left, right) => this.arithmeticHelper.nonstrictadd(left, right) as RawScalarValue,
+        mapToRawScalarValue as (arg: InternalScalarValue) => RawScalarValue,
+        (result) => result instanceof CellError ? result : typeof result === 'number' ? result : 0,
+      )
+
+      return sampledResult ?? this.computeConditionalAggregationFunction<RawScalarValue>(
+        values,
+        args as RawInterpreterValue[],
+        functionName,
+        0,
+        (left, right) => this.arithmeticHelper.nonstrictadd(left, right),
+        mapToRawScalarValue as (arg: InternalScalarValue) => RawScalarValue,
+      )
+    }
 
     return this.runFunction(ast.args, state, this.metadata(functionName), computeFn)
   }
@@ -184,12 +212,25 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
 
     const computeFn = (
       conditionRange: SimpleRangeValue,
-      criterion: RawScalarValue,
+      criterion: InternalScalarValue,
       values: Maybe<SimpleRangeValue>
     ) => {
+      const valuesRange = values ?? conditionRange
+      const sampledResult = this.computeSampleAwareConditionalAggregationFunction<AverageResult>(
+        valuesRange,
+        [conditionRange, criterion] as [SimpleRangeValue, InternalScalarValue],
+        AverageResult.empty,
+        (left, right) => left.compose(right),
+        (arg) => isExtendedNumber(arg) ? AverageResult.single(getRawValue(arg)) : AverageResult.empty,
+        (result) => result.averageValue() ?? new CellError(ErrorType.DIV_BY_ZERO),
+      )
+      if (sampledResult !== undefined) {
+        return sampledResult
+      }
+
       const averageResult = this.computeConditionalAggregationFunction<AverageResult>(
-        values ?? conditionRange,
-        [conditionRange, criterion],
+        valuesRange,
+        [conditionRange, normalizeCriterionForScalarPath(criterion)],
         functionName,
         AverageResult.empty,
         (left, right) => left.compose(right),
@@ -219,14 +260,25 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
   public countif(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     const functionName = 'COUNTIF'
 
-    const computeFn = (conditionRange: SimpleRangeValue, criterion: RawScalarValue) => this.computeConditionalAggregationFunction<number>(
-      conditionRange,
-      [conditionRange, criterion],
-      functionName,
-      0,
-      (left, right) => left + right,
-      () => 1,
-    )
+    const computeFn = (conditionRange: SimpleRangeValue, criterion: InternalScalarValue) => {
+      const sampledResult = this.computeSampleAwareConditionalAggregationFunction<number>(
+        conditionRange,
+        [conditionRange, criterion] as [SimpleRangeValue, InternalScalarValue],
+        0,
+        (left, right) => left + right,
+        () => 1,
+        (result) => result,
+      )
+
+      return sampledResult ?? this.computeConditionalAggregationFunction<number>(
+        conditionRange,
+        [conditionRange, normalizeCriterionForScalarPath(criterion)],
+        functionName,
+        0,
+        (left, right) => left + right,
+        () => 1,
+      )
+    }
 
     return this.runFunction(ast.args, state, this.metadata(functionName), computeFn)
   }
@@ -234,14 +286,25 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
   public countifs(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     const functionName = 'COUNTIFS'
 
-    const computeFn = (...args: unknown[]) => this.computeConditionalAggregationFunction<number>(
-      args[0] as SimpleRangeValue,
-      args as RawInterpreterValue[],
-      functionName,
-      0,
-      (left, right) => left + right,
-      () => 1,
-    )
+    const computeFn = (...args: unknown[]) => {
+      const sampledResult = this.computeSampleAwareConditionalAggregationFunction<number>(
+        args[0] as SimpleRangeValue,
+        args as (SimpleRangeValue | InternalScalarValue)[],
+        0,
+        (left, right) => left + right,
+        () => 1,
+        (result) => result,
+      )
+
+      return sampledResult ?? this.computeConditionalAggregationFunction<number>(
+        args[0] as SimpleRangeValue,
+        args as RawInterpreterValue[],
+        functionName,
+        0,
+        (left, right) => left + right,
+        () => 1,
+      )
+    }
 
     return this.runFunction(ast.args, state, this.metadata(functionName), computeFn)
   }
@@ -258,6 +321,21 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
     }
 
     const computeFn = (values: SimpleRangeValue, ...args: unknown[]) => {
+      const sampledResult = this.computeSampleAwareConditionalAggregationFunction<RawScalarValue>(
+        values,
+        args as (SimpleRangeValue | InternalScalarValue)[],
+        Number.POSITIVE_INFINITY,
+        composeFunction,
+        mapToRawScalarValue as (arg: InternalScalarValue) => RawScalarValue,
+        (result) => {
+          const normalized = zeroForInfinite(result)
+          return normalized instanceof CellError ? normalized : typeof normalized === 'number' ? normalized : 0
+        },
+      )
+      if (sampledResult !== undefined) {
+        return sampledResult
+      }
+
       const minResult = this.computeConditionalAggregationFunction<RawScalarValue>(
         values,
         args as RawInterpreterValue[],
@@ -285,6 +363,21 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
     }
 
     const computeFn = (values: SimpleRangeValue, ...args: unknown[]) => {
+      const sampledResult = this.computeSampleAwareConditionalAggregationFunction<RawScalarValue>(
+        values,
+        args as (SimpleRangeValue | InternalScalarValue)[],
+        Number.NEGATIVE_INFINITY,
+        composeFunction,
+        mapToRawScalarValue as (arg: InternalScalarValue) => RawScalarValue,
+        (result) => {
+          const normalized = zeroForInfinite(result)
+          return normalized instanceof CellError ? normalized : typeof normalized === 'number' ? normalized : 0
+        },
+      )
+      if (sampledResult !== undefined) {
+        return sampledResult
+      }
+
       const maxResult = this.computeConditionalAggregationFunction<RawScalarValue>(
         values,
         args as RawInterpreterValue[],
@@ -326,4 +419,163 @@ export class ConditionalAggregationPlugin extends FunctionPlugin implements Func
       mapFunction,
     ).compute(valuesRange, conditions)
   }
+
+  private computeSampleAwareConditionalAggregationFunction<T>(
+    valuesRange: SimpleRangeValue,
+    conditionArgs: (SimpleRangeValue | InternalScalarValue)[],
+    reduceInitialValue: T,
+    composeFunction: (left: T, right: T) => T,
+    mapFunction: (arg: InternalScalarValue) => T,
+    finalizeResult: (result: T) => number | CellError,
+  ): SampledDistribution | CellError | undefined {
+    const conditions = this.parseSampleAwareConditions(valuesRange, conditionArgs)
+    if (conditions instanceof CellError || conditions === undefined) {
+      return conditions
+    }
+
+    const valueEntries = valuesRange.valuesFromTopLeftCorner()
+    const valueSamples = valueEntries.map((value) => sampleAwareConditionalValue(value, this.config))
+    const sampleCount = maxConditionalSampleCount(valueSamples, conditions, this.config.sampleSize)
+    const resultSamples: number[] = []
+
+    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+      const criterionPackages: CriterionPackage[] = []
+
+      for (const condition of conditions) {
+        const sampledCriterion = condition.criterionSamples[sampleIndex % condition.criterionSamples.length]
+        const criterionValue = sampleAwareCriterionValue(sampledCriterion)
+        if (criterionValue instanceof CellError) {
+          return criterionValue
+        }
+
+        const criterionPackage = this.interpreter.criterionBuilder.fromCellValue(criterionValue, this.arithmeticHelper)
+        if (criterionPackage === undefined) {
+          return new CellError(ErrorType.VALUE, ErrorMessage.BadCriterion)
+        }
+        criterionPackages.push(criterionPackage)
+      }
+
+      let result = reduceInitialValue
+      for (let valueIndex = 0; valueIndex < valueEntries.length; valueIndex++) {
+        const matchesAllCriteria = conditions.every((condition, conditionIndex) => {
+          const sampledConditionValue = condition.rangeSamples[valueIndex][sampleIndex % condition.rangeSamples[valueIndex].length]
+          return criterionPackages[conditionIndex].lambda(getRawValue(sampledConditionValue))
+        })
+
+        if (!matchesAllCriteria) {
+          continue
+        }
+
+        const sampledValue = valueSamples[valueIndex][sampleIndex % valueSamples[valueIndex].length]
+        const mappedValue = mapFunction(sampledValue)
+        if (mappedValue instanceof CellError) {
+          return mappedValue
+        }
+
+        result = composeFunction(result, mappedValue)
+      }
+
+      const finalized = finalizeResult(result)
+      if (finalized instanceof CellError) {
+        return finalized
+      }
+      resultSamples.push(finalized === 0 ? 0 : finalized)
+    }
+
+    return new SampledDistribution(resultSamples, this.config)
+  }
+
+  private parseSampleAwareConditions(
+    valuesRange: SimpleRangeValue,
+    conditionArgs: (SimpleRangeValue | InternalScalarValue)[],
+  ): SampleAwareCondition[] | CellError | undefined {
+    const conditions: SampleAwareCondition[] = []
+    let hasUncertainty = containsUncertainty(valuesRange.valuesFromTopLeftCorner())
+
+    for (let i = 0; i < conditionArgs.length; i += 2) {
+      const conditionRange = conditionArgs[i] as SimpleRangeValue
+      if (!conditionRange.sameDimensionsAs(valuesRange)) {
+        return new CellError(ErrorType.VALUE, ErrorMessage.EqualLength)
+      }
+
+      const criterion = conditionArgs[i + 1] as InternalScalarValue
+      if (criterion instanceof CellError) {
+        return criterion
+      }
+
+      const rangeEntries = conditionRange.valuesFromTopLeftCorner()
+      const criterionValue = sampleAwareCriterionValue(criterion)
+      if (criterionValue instanceof CellError) {
+        return criterionValue
+      }
+
+      const criterionPackage = this.interpreter.criterionBuilder.fromCellValue(criterionValue, this.arithmeticHelper)
+      if (criterionPackage === undefined) {
+        return new CellError(ErrorType.VALUE, ErrorMessage.BadCriterion)
+      }
+
+      hasUncertainty = hasUncertainty || containsUncertainty(rangeEntries) || isUncertainValue(criterion)
+      conditions.push({
+        criterionSamples: sampleAwareConditionalValue(criterion, this.config),
+        rangeSamples: rangeEntries.map((entry) => sampleAwareConditionalValue(entry, this.config)),
+      })
+    }
+
+    return hasUncertainty ? conditions : undefined
+  }
+}
+
+type SampleAwareCondition = {
+  criterionSamples: InternalScalarValue[],
+  rangeSamples: InternalScalarValue[][],
+}
+
+const containsUncertainty = (values: InternalScalarValue[]): boolean =>
+  values.some((value) => isUncertainValue(value))
+
+const sampleAwareConditionalValue = (
+  value: InternalScalarValue,
+  config: Config,
+): InternalScalarValue[] => {
+  if (value instanceof CellError) {
+    return Array.from({length: config.sampleSize}, () => value)
+  }
+
+  if (isUncertainValue(value)) {
+    return samplesForValue(value, config)
+  }
+
+  return Array.from({length: config.sampleSize}, () => value)
+}
+
+const normalizeCriterionForScalarPath = (criterion: InternalScalarValue): RawScalarValue =>
+  isExtendedNumber(criterion) ? getRawValue(criterion) : criterion
+
+const sampleAwareCriterionValue = (value: InternalScalarValue): RawScalarValue | CellError => {
+  if (value instanceof CellError) {
+    return value
+  }
+
+  return isExtendedNumber(value) ? getRawValue(value) : value
+}
+
+const maxConditionalSampleCount = (
+  valueSamples: InternalScalarValue[][],
+  conditions: SampleAwareCondition[],
+  fallbackSampleSize: number,
+): number => {
+  let sampleCount = fallbackSampleSize
+
+  for (const samples of valueSamples) {
+    sampleCount = Math.max(sampleCount, samples.length)
+  }
+
+  for (const condition of conditions) {
+    sampleCount = Math.max(sampleCount, condition.criterionSamples.length)
+    for (const samples of condition.rangeSamples) {
+      sampleCount = Math.max(sampleCount, samples.length)
+    }
+  }
+
+  return sampleCount
 }

@@ -15,6 +15,7 @@ Feature-specific behavior is documented in:
 
 - `aggregate-functions.md`
 - `comparisons-and-conditionals.md`
+- `conditional-aggregates.md`
 - `statistical-aggregate-functions.md`
 - `pointwise-functions.md`
 - `sampling-policies.md`
@@ -34,6 +35,6 @@ Feature-specific behavior is documented in:
    `NOT`.
 5. Conditional aggregates and filtering:
    `SUMIF`, `SUMIFS`, `AVERAGEIF`, `COUNTIF`, `COUNTIFS`, `MINIFS`,
-   `MAXIFS`, `FILTER`.
+   `MAXIFS`, then `FILTER`.
 
 Each phase must add focused tests and update the relevant feature document.
