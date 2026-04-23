@@ -5,7 +5,7 @@ lost between implementation sessions.
 
 ## Current Status
 
-Phases 1, 2, and 3 are implemented.
+Phases 1, 2, and 3 are implemented. Phase 4 is in progress.
 
 Implemented behavior:
 
@@ -27,6 +27,11 @@ Implemented behavior:
 - Rounding, trigonometric, hyperbolic, inverse trigonometric, and `SQRTPI`
   functions in the Phase 3 scope return `SampledDistribution` when any numeric
   argument is uncertain.
+- Comparison operators and `HF.EQ`, `HF.NE`, `HF.LT`, `HF.LTE`, `HF.GT`,
+  `HF.GTE` return `SampledDistribution` when any compared operand is uncertain.
+- `IF`, `IFS`, `AND`, `OR`, `XOR`, and `NOT` evaluate uncertain conditions per
+  simulation trial and return `SampledDistribution` when they enter the sampled
+  path.
 
 Primary implementation files:
 
@@ -43,6 +48,9 @@ Primary implementation files:
 - `src/interpreter/plugin/RoundingPlugin.ts`
 - `src/interpreter/plugin/TrigonometryPlugin.ts`
 - `src/interpreter/plugin/MathConstantsPlugin.ts`
+- `src/interpreter/Interpreter.ts`
+- `src/interpreter/plugin/SimpleArithmertic.ts`
+- `src/interpreter/plugin/BooleanPlugin.ts`
 
 Primary tests:
 
@@ -51,6 +59,7 @@ Primary tests:
 - `test/interpreter/sample-aware-statistical-aggregates.spec.ts`
 - `test/interpreter/sample-aware-pointwise-functions.spec.ts`
 - `test/interpreter/sample-aware-rounding-trigonometry.spec.ts`
+- `test/interpreter/sample-aware-comparisons-and-conditionals.spec.ts`
 - Existing aggregate and distribution tests for `SUM`, `AVERAGE`, `MIN`, `MAX`,
   `PRODUCT`, `SUMSQ`, `SUMPRODUCT`, distribution constructors, and distribution
   arithmetic.
@@ -162,18 +171,18 @@ Remaining work:
 
 ## Phase 4: Comparisons And Conditionals
 
-Status: Not started.
+Status: In progress.
 
 Candidate functions and operators:
 
 - Comparison operators
 - `IF`
 - `IFS`
-- `SWITCH`
 - `AND`
 - `OR`
 - `XOR`
 - `NOT`
+- `SWITCH`
 
 Policy to implement:
 
@@ -181,12 +190,27 @@ Comparisons involving uncertainty need a sampled boolean result or equivalent
 mask. Conditional functions should choose the true or false branch per
 simulation trial.
 
+Implemented behavior:
+
+- Comparison operators evaluate per simulation trial and return sampled numeric
+  masks of `1` and `0` when any operand is uncertain.
+- `HF.EQ`, `HF.NE`, `HF.LT`, `HF.LTE`, `HF.GT`, and `HF.GTE` follow the same
+  sampled comparison policy.
+- `IF` and `IFS` evaluate uncertain conditions per simulation trial when their
+  branch values can be coerced to numbers.
+- `AND`, `OR`, `XOR`, and `NOT` evaluate uncertain logical arguments per
+  simulation trial and return sampled numeric masks of `1` and `0`.
+- Deterministic inputs keep existing scalar behavior.
+
 Important design checks:
 
-- Decide the internal representation for sampled boolean masks.
-- Prevent conditionals from collapsing uncertain comparisons to representative
-  values.
-- Define how mixed scalar and sampled branches align.
+- Sampled boolean masks are represented as `SampledDistribution` with `1` and
+  `0`.
+- Scalar comparison semantics in `ArithmeticHelper.compare()` stay unchanged in
+  this phase so `SWITCH` and lookup-style behavior do not change accidentally.
+- Sampled `IF` and `IFS` currently support only branches that can be coerced to
+  numbers.
+- `SWITCH` remains deferred.
 
 ## Phase 5: Conditional Aggregates And Filtering
 

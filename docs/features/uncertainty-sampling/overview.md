@@ -14,6 +14,7 @@ remaining work by phase.
 Feature-specific behavior is documented in:
 
 - `aggregate-functions.md`
+- `comparisons-and-conditionals.md`
 - `statistical-aggregate-functions.md`
 - `pointwise-functions.md`
 - `sampling-policies.md`
@@ -29,8 +30,8 @@ Feature-specific behavior is documented in:
    `ABS`, `SQRT`, `EXP`, `LN`, `LOG`, `LOG10`, rounding functions,
    trigonometric functions, and related scalar numeric transforms.
 4. Comparisons and conditionals:
-   sampled comparison masks plus `IF`, `IFS`, `SWITCH`, `AND`, `OR`,
-   `XOR`, `NOT`.
+   sampled comparison masks plus `IF`, `IFS`, `AND`, `OR`, `XOR`, `NOT`.
+   `SWITCH` remains deferred.
 5. Conditional aggregates and filtering:
    `SUMIF`, `SUMIFS`, `AVERAGEIF`, `COUNTIF`, `COUNTIFS`, `MINIFS`,
    `MAXIFS`, `FILTER`.

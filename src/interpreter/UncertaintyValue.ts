@@ -11,6 +11,7 @@ import {
   DistributionNumber,
   ExtendedNumber,
   getRawValue,
+  InternalNoErrorScalarValue,
   InternalScalarValue,
   InterpreterValue,
   isExtendedNumber,
@@ -68,6 +69,34 @@ export const sampleAwareAggregate = (
 
   return new SampledDistribution(resultSamples, config)
 }
+
+/**
+ * Evaluates a scalar boolean result per simulation trial and returns it as a
+ * sampled numeric mask of 1 and 0.
+ */
+export const sampleAwareScalarBooleanResult = (
+  values: InternalNoErrorScalarValue[],
+  config: Config,
+  evaluate: (values: InternalNoErrorScalarValue[]) => boolean | CellError,
+): SampledDistribution | CellError | undefined =>
+  sampleAwareScalarResult(values, config, (samples) => {
+    const result = evaluate(samples)
+    if (result instanceof CellError) {
+      return result
+    }
+    return result ? 1 : 0
+  })
+
+/**
+ * Evaluates a numeric scalar result per simulation trial when any argument is
+ * uncertain.
+ */
+export const sampleAwareScalarNumericResult = (
+  values: InternalNoErrorScalarValue[],
+  config: Config,
+  evaluate: (values: InternalNoErrorScalarValue[]) => number | CellError,
+): SampledDistribution | CellError | undefined =>
+  sampleAwareScalarResult(values, config, evaluate)
 
 /**
  * Applies a unary numeric transform to each sample when the input is uncertain.
@@ -171,6 +200,42 @@ const collectExactScalarValues = (args: InternalScalarValue[]): ExtendedNumber[]
   }
 
   return values
+}
+
+const sampleAwareScalarResult = (
+  values: InternalNoErrorScalarValue[],
+  config: Config,
+  evaluate: (values: InternalNoErrorScalarValue[]) => number | CellError,
+): SampledDistribution | CellError | undefined => {
+  if (!values.some(isUncertainValue)) {
+    return undefined
+  }
+
+  const sampleArrays = values.map((value) => sampledScalarsForValue(value, config))
+  const sampleCount = Math.max(...sampleArrays.map((samples) => samples.length), config.sampleSize)
+  const resultSamples: number[] = []
+
+  for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+    const samples = sampleArrays.map((sampleArray) => sampleArray[sampleIndex % sampleArray.length])
+    const result = evaluate(samples)
+    if (result instanceof CellError) {
+      return result
+    }
+    resultSamples.push(result === 0 ? 0 : result)
+  }
+
+  return new SampledDistribution(resultSamples, config)
+}
+
+const sampledScalarsForValue = (
+  value: InternalNoErrorScalarValue,
+  config: Config,
+): InternalNoErrorScalarValue[] => {
+  if (isUncertainValue(value)) {
+    return samplesForValue(value, config)
+  }
+
+  return Array.from({length: config.sampleSize}, () => value)
 }
 
 const validPointwiseResult = (value: number | CellError): number | CellError => {
