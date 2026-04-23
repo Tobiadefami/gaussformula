@@ -24,6 +24,8 @@ Phase 4 introduces sampled comparison masks and sampled logical evaluation.
   condition is uncertain.
 - `AND`, `OR`, `XOR`, and `NOT` evaluate logical results per simulation trial
   when any argument is uncertain.
+- `SWITCH` evaluates uncertain selectors and uncertain match values per
+  simulation trial.
 
 ## Representation
 
@@ -32,13 +34,14 @@ Phase 4 introduces sampled comparison masks and sampled logical evaluation.
 - This keeps sampled comparisons compatible with later numeric operations and
   with the existing uncertainty value model.
 
-## Current Phase 4 boundary
+## Current boundary
 
 - `IF` and `IFS` sampled paths currently require branch values that can be
   coerced to numbers.
+- `SWITCH` sampled paths currently require result values that can be coerced to
+  numbers.
 - Non-numeric sampled branches return the existing number-coercion `VALUE`
   error.
-- `SWITCH` is not sample-aware yet.
 - Lookup-style and criteria-style boolean flows are still deferred to Phase 5.
 
 ## Design notes

@@ -76,6 +76,29 @@ describe('sample-aware comparisons and conditionals', () => {
     expectConstantSampledDistribution(engine.getCellValue(adr('D2')), 0)
   })
 
+  it('returns sampled distributions for numeric SWITCH results over uncertain selectors and cases', () => {
+    const engine = HyperFormula.buildFromArray([
+      ['N(10, 0)', 'N(20, 0)'],
+      ['=SWITCH(A1, 10, 1, 20, 2, 0)', '=SWITCH(20, A1, 1, B1, 2, 0)'],
+    ], {
+      sampleSize: 1000,
+    })
+
+    expectConstantSampledDistribution(engine.getCellValue(adr('A2')), 1)
+    expectConstantSampledDistribution(engine.getCellValue(adr('B2')), 2)
+  })
+
+  it('returns existing errors for sampled SWITCH selections and VALUE for non-numeric sampled results', () => {
+    const engine = HyperFormula.buildFromArray([
+      ['N(10, 0)', '=SWITCH(A1, 10, 1/0, 20, 2, 0)', '=SWITCH(A1, 10, "yes", 20, "no", 0)'],
+    ], {
+      sampleSize: 1000,
+    })
+
+    expect(engine.getCellValue(adr('B1'))).toEqualError(detailedError(ErrorType.DIV_BY_ZERO))
+    expect(engine.getCellValue(adr('C1'))).toEqualError(detailedError(ErrorType.VALUE, ErrorMessage.NumberCoercion))
+  })
+
   it('returns VALUE when sampled IF branches are not numeric', () => {
     const engine = HyperFormula.buildFromArray([
       ['N(10, 0)', 'N(20, 0)', '=IF(A1<B1, "yes", "no")'],

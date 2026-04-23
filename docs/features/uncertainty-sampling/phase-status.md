@@ -5,7 +5,7 @@ lost between implementation sessions.
 
 ## Current Status
 
-Phases 1, 2, and 3 are implemented. Phase 4 is in progress.
+Phases 1, 2, 3, and 4 are implemented.
 
 Implemented behavior:
 
@@ -32,6 +32,8 @@ Implemented behavior:
 - `IF`, `IFS`, `AND`, `OR`, `XOR`, and `NOT` evaluate uncertain conditions per
   simulation trial and return `SampledDistribution` when they enter the sampled
   path.
+- `SWITCH` evaluates uncertain selectors and match values per simulation trial
+  and returns `SampledDistribution` when it enters the sampled path.
 
 Primary implementation files:
 
@@ -171,7 +173,7 @@ Remaining work:
 
 ## Phase 4: Comparisons And Conditionals
 
-Status: In progress.
+Status: Implemented.
 
 Candidate functions and operators:
 
@@ -200,6 +202,8 @@ Implemented behavior:
   branch values can be coerced to numbers.
 - `AND`, `OR`, `XOR`, and `NOT` evaluate uncertain logical arguments per
   simulation trial and return sampled numeric masks of `1` and `0`.
+- `SWITCH` evaluates uncertain selectors and uncertain match values per
+  simulation trial when its result values can be coerced to numbers.
 - Deterministic inputs keep existing scalar behavior.
 
 Important design checks:
@@ -208,9 +212,8 @@ Important design checks:
   `0`.
 - Scalar comparison semantics in `ArithmeticHelper.compare()` stay unchanged in
   this phase so `SWITCH` and lookup-style behavior do not change accidentally.
-- Sampled `IF` and `IFS` currently support only branches that can be coerced to
-  numbers.
-- `SWITCH` remains deferred.
+- Sampled `IF`, `IFS`, and `SWITCH` currently support only result branches that
+  can be coerced to numbers.
 
 ## Phase 5: Conditional Aggregates And Filtering
 

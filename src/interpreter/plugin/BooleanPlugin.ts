@@ -14,6 +14,7 @@ import {
   InternalScalarValue,
   InterpreterValue,
   isExtendedNumber,
+  SampledDistribution,
 } from '../InterpreterValue'
 import {
   coerceScalarToBoolean,
@@ -22,6 +23,7 @@ import {
   isUncertainValue,
   sampleAwareScalarBooleanResult,
   sampleAwareScalarNumericResult,
+  samplesForValue,
 } from '../UncertaintyValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
@@ -243,6 +245,11 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
   }
 
   public switch(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
+    const sampledResult = this.sampleAwareSwitch(ast, state)
+    if (sampledResult !== undefined) {
+      return sampledResult
+    }
+
     return this.runFunction(ast.args, state, this.metadata('SWITCH'), (selector, ...args) => {
       const n = args.length
       let i = 0
@@ -463,6 +470,71 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
     })
   }
 
+  private sampleAwareSwitch(ast: ProcedureAst, state: InterpreterState): InterpreterValue | undefined {
+    if (ast.args.length < 3) {
+      return undefined
+    }
+
+    const selector = this.evaluateAst(ast.args[0], state)
+    const args = ast.args.slice(1).map((arg) => this.evaluateAst(arg, state))
+
+    if (selector instanceof SimpleRangeValue || args.some((arg) => arg instanceof SimpleRangeValue)) {
+      return undefined
+    }
+
+    if (!this.containsUncertainValue(selector) && !args.some((arg) => this.containsUncertainValue(arg))) {
+      return undefined
+    }
+
+    if (selector instanceof CellError) {
+      return selector
+    }
+
+    const scalarSelector = selector
+    const scalarArgs = args as InternalScalarValue[]
+    const sampleCount = this.config.sampleSize
+    const resultSamples: number[] = []
+
+    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+      const sampledSelector = this.sampledSwitchValue(scalarSelector, sampleIndex) as InternalNoErrorScalarValue
+      let selectedResult: InternalScalarValue | undefined
+      let argIndex = 0
+
+      for (; argIndex + 1 < scalarArgs.length; argIndex += 2) {
+        const candidate = scalarArgs[argIndex]
+        if (candidate instanceof CellError) {
+          continue
+        }
+
+        const sampledCandidate = this.sampledSwitchValue(candidate, sampleIndex)
+        if (this.arithmeticHelper.eq(sampledSelector, sampledCandidate as InternalNoErrorScalarValue)) {
+          selectedResult = this.sampledSwitchValue(scalarArgs[argIndex + 1], sampleIndex)
+          break
+        }
+      }
+
+      if (selectedResult === undefined) {
+        if (argIndex < scalarArgs.length) {
+          selectedResult = this.sampledSwitchValue(scalarArgs[argIndex], sampleIndex)
+        } else {
+          return new CellError(ErrorType.NA, ErrorMessage.NoDefault)
+        }
+      }
+
+      if (selectedResult instanceof CellError) {
+        return selectedResult
+      }
+
+      const numericResult = this.coerceScalarToNumberOrError(selectedResult)
+      if (numericResult instanceof CellError) {
+        return numericResult
+      }
+      resultSamples.push(getRawValue(numericResult))
+    }
+
+    return new SampledDistribution(resultSamples, this.config)
+  }
+
   private containsUncertainValue(value: InterpreterValue): boolean {
     if (value instanceof SimpleRangeValue) {
       return value.valuesFromTopLeftCorner().some((scalarValue) => isUncertainValue(scalarValue))
@@ -481,5 +553,14 @@ export class BooleanPlugin extends FunctionPlugin implements FunctionPluginTypec
     }
 
     return coercedValue
+  }
+
+  private sampledSwitchValue(value: InternalScalarValue, sampleIndex: number): InternalScalarValue {
+    if (value instanceof CellError || !isUncertainValue(value)) {
+      return value
+    }
+
+    const samples = samplesForValue(value, this.config)
+    return samples[sampleIndex % samples.length]
   }
 }

@@ -30,8 +30,8 @@ Feature-specific behavior is documented in:
    `ABS`, `SQRT`, `EXP`, `LN`, `LOG`, `LOG10`, rounding functions,
    trigonometric functions, and related scalar numeric transforms.
 4. Comparisons and conditionals:
-   sampled comparison masks plus `IF`, `IFS`, `AND`, `OR`, `XOR`, `NOT`.
-   `SWITCH` remains deferred.
+   sampled comparison masks plus `IF`, `IFS`, `SWITCH`, `AND`, `OR`, `XOR`,
+   `NOT`.
 5. Conditional aggregates and filtering:
    `SUMIF`, `SUMIFS`, `AVERAGEIF`, `COUNTIF`, `COUNTIFS`, `MINIFS`,
    `MAXIFS`, `FILTER`.
