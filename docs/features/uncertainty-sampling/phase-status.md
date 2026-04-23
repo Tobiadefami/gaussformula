@@ -5,7 +5,7 @@ lost between implementation sessions.
 
 ## Current Status
 
-Phase 1 is implemented.
+Phases 1 and 2 are implemented.
 
 Implemented behavior:
 
@@ -16,6 +16,12 @@ Implemented behavior:
 - Uncertainty detection and sample extraction live in
   `src/interpreter/UncertaintyValue.ts` instead of `ArithmeticHelper`, so
   arithmetic and plugins can share the same definition of an uncertain value.
+- Shared sample-aware aggregate helpers also live in
+  `src/interpreter/UncertaintyValue.ts`, so plugins do not duplicate the
+  per-simulation-trial loop or exact range value collection.
+- `VAR.S`, `VAR.P`, `VAR`, `STDEV.S`, `STDEV.P`, `STDEV`, `MEDIAN`, `LARGE`,
+  `SMALL`, `AVEDEV`, `DEVSQ`, `GEOMEAN`, and `HARMEAN` return
+  `SampledDistribution` when any aggregate input is uncertain.
 
 Primary implementation files:
 
@@ -23,14 +29,20 @@ Primary implementation files:
 - `src/interpreter/ArithmeticHelper.ts`
 - `src/interpreter/plugin/NumericAggregationPlugin.ts`
 - `src/interpreter/plugin/SumprodPlugin.ts`
+- `src/interpreter/plugin/MedianPlugin.ts`
+- `src/interpreter/plugin/StatisticalAggregationPlugin.ts`
 
 Primary tests:
 
 - `test/interpreter/uncertainty-value.spec.ts`
 - `test/interpreter/sample-aware-aggregates.spec.ts`
+- `test/interpreter/sample-aware-statistical-aggregates.spec.ts`
 - Existing aggregate and distribution tests for `SUM`, `AVERAGE`, `MIN`, `MAX`,
   `PRODUCT`, `SUMSQ`, `SUMPRODUCT`, distribution constructors, and distribution
   arithmetic.
+- Existing statistical aggregate tests for `VAR.S`, `VAR.P`, `STDEV.S`,
+  `STDEV.P`, `MEDIAN`, `LARGE`, `SMALL`, `AVEDEV`, `DEVSQ`, `GEOMEAN`, and
+  `HARMEAN`.
 
 ## Phase 1: Basic Aggregates
 
@@ -54,7 +66,7 @@ stays scalar.
 
 ## Phase 2: Statistical Aggregates
 
-Status: Not started.
+Status: Implemented.
 
 Candidate functions:
 
@@ -73,12 +85,25 @@ Policy to implement:
 Statistical aggregates over uncertain inputs should compute the statistic per
 simulation trial and return a `SampledDistribution`.
 
+Implemented behavior:
+
+- `VAR.S`, `VAR`, `STDEV.S`, and `STDEV` compute sample variance or sample
+  standard deviation per simulation trial.
+- `VAR.P` and `STDEV.P` compute population variance or population standard
+  deviation per simulation trial.
+- `MEDIAN`, `LARGE`, and `SMALL` rank values per simulation trial.
+- `AVEDEV`, `DEVSQ`, `GEOMEAN`, and `HARMEAN` compute their statistic per
+  simulation trial.
+- Deterministic inputs keep the existing scalar behavior and existing
+  Excel-compatible coercion rules.
+
 Important design checks:
 
-- Preserve existing Excel-compatible scalar behavior and error behavior.
-- Confirm single-observation behavior before changing `STDEV` and `VAR`.
-- Decide whether `MEDIAN`, `LARGE`, and `SMALL` should require at least one
-  sampled input or should remain scalar for deterministic ranges.
+- Scalar behavior and error behavior are covered by the existing function tests.
+- `STDEV.S` and `VAR.S` keep the existing single-observation `DIV_BY_ZERO`
+  behavior.
+- `MEDIAN`, `LARGE`, and `SMALL` only return sampled results when at least one
+  input is uncertain; deterministic inputs remain scalar.
 
 ## Phase 3: Pointwise Numeric Functions
 

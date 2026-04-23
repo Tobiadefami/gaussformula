@@ -11,6 +11,12 @@ uncertainty once they are reviewed.
 See `phase-status.md` for implementation status, changed files, tests, and the
 remaining work by phase.
 
+Feature-specific behavior is documented in:
+
+- `aggregate-functions.md`
+- `statistical-aggregate-functions.md`
+- `sampling-policies.md`
+
 ## Phases
 
 1. Basic aggregate functions:

@@ -16,7 +16,7 @@ import {EmptyValue, ExtendedNumber, getRawValue, InternalScalarValue, Interprete
 import {SimpleRangeValue} from '../../SimpleRangeValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 import {RangeVertex} from '../../DependencyGraph'
-import {isUncertainValue, samplesForValue} from '../UncertaintyValue'
+import {isUncertainValue, sampleAwareAggregate as sampleAwareValuesAggregate} from '../UncertaintyValue'
 
 export type BinaryOperation<T> = (left: T, right: T) => T
 
@@ -456,6 +456,13 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   private doVarS(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareStatisticalAggregate(args, state, (values) => {
+      return this.varianceForValues(values, true) ?? new CellError(ErrorType.DIV_BY_ZERO)
+    })
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     const result = this.reduceAggregate(args, state)
 
     if (result instanceof CellError) {
@@ -466,6 +473,13 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   private doVarP(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareStatisticalAggregate(args, state, (values) => {
+      return this.varianceForValues(values, false) ?? new CellError(ErrorType.DIV_BY_ZERO)
+    })
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     const result = this.reduceAggregate(args, state)
 
     if (result instanceof CellError) {
@@ -476,6 +490,14 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   private doStdevS(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareStatisticalAggregate(args, state, (values) => {
+      const variance = this.varianceForValues(values, true)
+      return variance === undefined ? new CellError(ErrorType.DIV_BY_ZERO) : Math.sqrt(variance)
+    })
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     const result = this.reduceAggregate(args, state)
 
     if (result instanceof CellError) {
@@ -487,6 +509,14 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
   }
 
   private doStdevP(args: Ast[], state: InterpreterState): InternalScalarValue {
+    const sampled = this.sampleAwareStatisticalAggregate(args, state, (values) => {
+      const variance = this.varianceForValues(values, false)
+      return variance === undefined ? new CellError(ErrorType.DIV_BY_ZERO) : Math.sqrt(variance)
+    })
+    if (sampled !== undefined) {
+      return sampled
+    }
+
     const result = this.reduceAggregate(args, state)
 
     if (result instanceof CellError) {
@@ -577,16 +607,9 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
       return undefined
     }
 
-    const sampleArrays = values.map((value) => samplesForValue(value, this.config))
-    const sampleCount = Math.max(...sampleArrays.map((samples) => samples.length), this.config.sampleSize)
-    const resultSamples = Array.from({length: sampleCount}, (_, sampleIndex) =>
-      sampleArrays.reduce((acc, samples) => {
-        const sample = samples[sampleIndex % samples.length]
-        return reducingFunction(acc, mapSample(sample))
-      }, initialAccValue)
+    return sampleAwareValuesAggregate(values, this.config, (samples) =>
+      samples.reduce((acc, sample) => reducingFunction(acc, mapSample(sample)), initialAccValue)
     )
-
-    return new SampledDistribution(resultSamples, this.config)
   }
 
   private sampleAwareAverage(
@@ -607,16 +630,38 @@ export class NumericAggregationPlugin extends FunctionPlugin implements Function
       return new CellError(ErrorType.DIV_BY_ZERO)
     }
 
-    const sampleArrays = values.map((value) => samplesForValue(value, this.config))
-    const sampleCount = Math.max(...sampleArrays.map((samples) => samples.length), this.config.sampleSize)
-    const resultSamples = Array.from({length: sampleCount}, (_, sampleIndex) => {
-      const sum = sampleArrays.reduce((acc, samples) => {
-        return acc + samples[sampleIndex % samples.length]
-      }, 0)
-      return sum / sampleArrays.length
+    return sampleAwareValuesAggregate(values, this.config, (samples) => {
+      const sum = samples.reduce((acc, sample) => acc + sample, 0)
+      return sum / samples.length
     })
+  }
 
-    return new SampledDistribution(resultSamples, this.config)
+  private sampleAwareStatisticalAggregate(
+    args: Ast[],
+    state: InterpreterState,
+    aggregateSamples: (values: number[]) => number | CellError,
+  ): SampledDistribution | CellError | undefined {
+    const values = this.collectAggregateValues(args, state, strictlyNumbers)
+    if (values instanceof CellError) {
+      return values
+    }
+
+    if (!values.some(isUncertainValue)) {
+      return undefined
+    }
+
+    return sampleAwareValuesAggregate(values, this.config, aggregateSamples)
+  }
+
+  private varianceForValues(values: number[], sample: boolean): number | undefined {
+    const count = values.length
+    if (count === 0 || (sample && count < 2)) {
+      return undefined
+    }
+
+    const sum = values.reduce((acc, value) => acc + value, 0)
+    const sumsq = values.reduce((acc, value) => acc + value * value, 0)
+    return (sumsq - (sum * sum) / count) / (sample ? count - 1 : count)
   }
 
   private collectAggregateValues(

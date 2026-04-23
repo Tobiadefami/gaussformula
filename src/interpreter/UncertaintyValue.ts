@@ -4,10 +4,15 @@
  */
 
 import {Config} from '../Config'
+import {CellError} from '../Cell'
+import {SimpleRangeValue} from '../SimpleRangeValue'
 import {
   DistributionNumber,
   ExtendedNumber,
   getRawValue,
+  InternalScalarValue,
+  InterpreterValue,
+  isExtendedNumber,
   SampledDistribution,
 } from './InterpreterValue'
 
@@ -33,4 +38,92 @@ export const samplesForValue = (value: ExtendedNumber, config: Config): number[]
 
   const rawValue = getRawValue(value)
   return Array.from({length: config.sampleSize}, () => rawValue)
+}
+
+/**
+ * Evaluates one aggregate calculation per simulation trial.
+ */
+export const sampleAwareAggregate = (
+  values: ExtendedNumber[],
+  config: Config,
+  aggregateSamples: (values: number[]) => number | CellError,
+): SampledDistribution | CellError | undefined => {
+  if (!values.some(isUncertainValue)) {
+    return undefined
+  }
+
+  const sampleArrays = values.map((value) => samplesForValue(value, config))
+  const sampleCount = Math.max(...sampleArrays.map((samples) => samples.length), config.sampleSize)
+  const resultSamples: number[] = []
+
+  for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+    const samples = sampleArrays.map((sampleArray) => sampleArray[sampleIndex % sampleArray.length])
+    const result = aggregateSamples(samples)
+    if (result instanceof CellError) {
+      return result
+    }
+    resultSamples.push(result)
+  }
+
+  return new SampledDistribution(resultSamples, config)
+}
+
+/**
+ * Collects numeric values from scalar arguments and ranges using exact range semantics.
+ */
+export const collectExactUncertaintyValues = (
+  args: InterpreterValue[],
+  coerceScalar: (arg: InternalScalarValue) => ExtendedNumber | CellError,
+): ExtendedNumber[] | CellError => {
+  const values: ExtendedNumber[] = []
+
+  for (const arg of args) {
+    if (arg instanceof SimpleRangeValue) {
+      const rangeValues = collectExactScalarValues(arg.valuesFromTopLeftCorner())
+      if (rangeValues instanceof CellError) {
+        return rangeValues
+      }
+      values.push(...rangeValues)
+    } else {
+      const coerced = coerceScalar(arg)
+      if (coerced instanceof CellError) {
+        return coerced
+      }
+      values.push(coerced)
+    }
+  }
+
+  return values
+}
+
+/**
+ * Collects exact numeric values and evaluates aggregate logic per simulation trial.
+ */
+export const sampleAwareExactAggregate = (
+  args: InterpreterValue[],
+  config: Config,
+  coerceScalar: (arg: InternalScalarValue) => ExtendedNumber | CellError,
+  aggregateSamples: (values: number[]) => number | CellError,
+): SampledDistribution | CellError | undefined => {
+  const values = collectExactUncertaintyValues(args, coerceScalar)
+  if (values instanceof CellError) {
+    return values
+  }
+
+  return sampleAwareAggregate(values, config, aggregateSamples)
+}
+
+const collectExactScalarValues = (args: InternalScalarValue[]): ExtendedNumber[] | CellError => {
+  const values: ExtendedNumber[] = []
+
+  for (const arg of args) {
+    if (arg instanceof CellError) {
+      return arg
+    }
+    if (isExtendedNumber(arg)) {
+      values.push(arg)
+    }
+  }
+
+  return values
 }
