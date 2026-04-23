@@ -7,7 +7,8 @@ import {CellError, ErrorType} from '../../Cell'
 import {ErrorMessage} from '../../error-message'
 import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
-import {getRawValue, InterpreterValue, isExtendedNumber} from '../InterpreterValue'
+import {ExtendedNumber, getRawValue, InterpreterValue, isExtendedNumber, SampledDistribution} from '../InterpreterValue'
+import {isUncertainValue, samplesForValue} from '../UncertaintyValue'
 import {SimpleRangeValue} from '../../SimpleRangeValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
@@ -33,9 +34,12 @@ export class SumprodPlugin extends FunctionPlugin implements FunctionPluginTypec
       }
 
       let ret = 0
+      let hasUncertainty = false
+      const terms: (ExtendedNumber | undefined)[][] = []
       const iterators = args.map(arg => arg.iterateValuesFromTopLeftCorner())
       for (let i = 0; i < width * height; i++) {
         let acc = 1
+        const term: (ExtendedNumber | undefined)[] = []
         for (const it of iterators) {
           const val = it.next().value
           if (val instanceof CellError) {
@@ -44,15 +48,36 @@ export class SumprodPlugin extends FunctionPlugin implements FunctionPluginTypec
           const coercedVal = this.coerceScalarToNumberOrError(val)
           if (isExtendedNumber(coercedVal)) {
             acc *= getRawValue(coercedVal)
+            term.push(coercedVal)
+            hasUncertainty = hasUncertainty || isUncertainValue(coercedVal)
           } else {
             acc = 0
+            term.push(undefined)
           }
         }
         ret += acc
+        terms.push(term)
+      }
+
+      if (hasUncertainty) {
+        const resultSamples = Array.from({length: this.config.sampleSize}, (_, sampleIndex) => {
+          return terms.reduce((total, term) => {
+            const product = term.reduce<number>((acc, value) => {
+              if (value === undefined) {
+                return 0
+              }
+              const samples = samplesForValue(value, this.config)
+              const sample = samples[sampleIndex % samples.length] ?? 0
+              return acc * sample
+            }, 1)
+            return total + product
+          }, 0)
+        })
+
+        return new SampledDistribution(resultSamples, this.config)
       }
 
       return ret
     })
   }
 }
-
