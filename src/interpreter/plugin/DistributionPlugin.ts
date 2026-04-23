@@ -7,7 +7,7 @@ import {CellError, ErrorType} from '../../Cell'
 import {ErrorMessage} from '../../error-message'
 import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
-import {DistributionNumber, InterpreterValue} from '../InterpreterValue'
+import {DEFAULT_CONFIDENCE_LEVEL, DistributionNumber, InterpreterValue} from '../InterpreterValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
 export class DistributionPlugin extends FunctionPlugin implements FunctionPluginTypecheck<DistributionPlugin> {
@@ -31,7 +31,7 @@ export class DistributionPlugin extends FunctionPlugin implements FunctionPlugin
       parameters: [
         {argumentType: FunctionArgumentType.NUMBER},
         {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, greaterThan: 0, lessThan: 100},
+        {argumentType: FunctionArgumentType.NUMBER, greaterThan: 0, lessThan: 100, defaultValue: DEFAULT_CONFIDENCE_LEVEL},
       ],
     },
     'LN.CI': {
@@ -39,7 +39,7 @@ export class DistributionPlugin extends FunctionPlugin implements FunctionPlugin
       parameters: [
         {argumentType: FunctionArgumentType.NUMBER},
         {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, greaterThan: 0, lessThan: 100},
+        {argumentType: FunctionArgumentType.NUMBER, greaterThan: 0, lessThan: 100, defaultValue: DEFAULT_CONFIDENCE_LEVEL},
       ],
     },
   }

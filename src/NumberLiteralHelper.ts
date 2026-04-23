@@ -11,6 +11,8 @@ import {
 import { Config } from './Config'
 import { Maybe } from './Maybe'
 
+const DEFAULT_CONFIDENCE_LEVEL = 95
+
 export class NumberLiteralHelper {
   private readonly numberPattern: RegExp
   private readonly allThousandSeparatorsRegex: RegExp
@@ -23,9 +25,9 @@ export class NumberLiteralHelper {
   private readonly uniformPattern: RegExp =
     /^U\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/i
   private readonly normalCiPattern: RegExp =
-    /^N\.CI\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/i
+    /^N\.CI\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)(?:\s*,\s*([+-]?\d*\.?\d+))?\s*\)$/i
   private readonly lognormalCiPattern: RegExp =
-    /^LN\.CI\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/i
+    /^LN\.CI\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)(?:\s*,\s*([+-]?\d*\.?\d+))?\s*\)$/i
 
   constructor(private readonly config: Config) {
     const thousandSeparator =
@@ -115,7 +117,9 @@ export class NumberLiteralHelper {
     if (normalCiMatch) {
       const lower = Number(normalCiMatch[1])
       const upper = Number(normalCiMatch[2])
-      const confidence = Number(normalCiMatch[3])
+      const confidence = normalCiMatch[3] === undefined
+        ? DEFAULT_CONFIDENCE_LEVEL
+        : Number(normalCiMatch[3])
       if (this.isValidConfidenceInterval(lower, upper, confidence)) {
         return DistributionNumber.normalFromCI(lower, upper, confidence)
       }
@@ -126,7 +130,9 @@ export class NumberLiteralHelper {
     if (lognormalCiMatch) {
       const lower = Number(lognormalCiMatch[1])
       const upper = Number(lognormalCiMatch[2])
-      const confidence = Number(lognormalCiMatch[3])
+      const confidence = lognormalCiMatch[3] === undefined
+        ? DEFAULT_CONFIDENCE_LEVEL
+        : Number(lognormalCiMatch[3])
       if (
         this.isValidConfidenceInterval(lower, upper, confidence) &&
         lower > 0

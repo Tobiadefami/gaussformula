@@ -57,7 +57,7 @@ describe('GaussFormula.getVisualDependencyGraph', () => {
   })
 
   it('returns structured distribution and sampled distribution summaries', () => {
-    const engine = GaussFormula.buildFromArray([['N.CI(10, 20, 0.95)', '=A1*2']], {
+    const engine = GaussFormula.buildFromArray([['N.CI(10, 20)', '=A1*2']], {
       sampleSize: 1000,
     })
 

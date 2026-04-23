@@ -208,6 +208,8 @@ export function sampleUniformDistribution(
 export type DistributionKind = 'normal' | 'lognormal' | 'uniform'
 export type DistributionSource = 'parameters' | 'ci'
 
+export const DEFAULT_CONFIDENCE_LEVEL = 95
+
 type DistributionNumberOptions = {
   format?: string,
   samplingIdentity?: string,
@@ -296,7 +298,7 @@ export class DistributionNumber extends RichNumber {
   public static normalFromCI(
     lower: number,
     upper: number,
-    confidence: number,
+    confidence: number = DEFAULT_CONFIDENCE_LEVEL,
     options?: DistributionNumberOptions
   ): DistributionNumber {
     const confidenceLevel = normalizeConfidenceLevel(confidence)
@@ -315,7 +317,7 @@ export class DistributionNumber extends RichNumber {
   public static lognormalFromCI(
     lower: number,
     upper: number,
-    confidence: number,
+    confidence: number = DEFAULT_CONFIDENCE_LEVEL,
     options?: DistributionNumberOptions
   ): DistributionNumber {
     const confidenceLevel = normalizeConfidenceLevel(confidence)
