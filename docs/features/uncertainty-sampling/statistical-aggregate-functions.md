@@ -7,8 +7,8 @@ and returns a `SampledDistribution`.
 For example:
 
 ```text
-A1 = N.CI(10, 20, 0.95)
-A2 = N.CI(30, 40, 0.95)
+A1 = N.CI(10, 20)
+A2 = N.CI(30, 40)
 =STDEV.S(A1:A2)
 ```
 

@@ -11,7 +11,7 @@
 
 ## About GaussFormula
 
-**GaussFormula** is a headless spreadsheet engine for JavaScript and TypeScript, designed for business and scientific web applications. It is a fork of HyperFormula with native support for uncertainty through explicit probability distributions such as `N(mean, variance)`, `LN(mu, sigma)`, `U(min, max)`, `N.CI(lower, upper, confidence)`, and `LN.CI(lower, upper, confidence)`.
+**GaussFormula** is a headless spreadsheet engine for JavaScript and TypeScript, designed for business and scientific web applications. It is a fork of HyperFormula with native support for uncertainty through explicit probability distributions such as `N(mean, variance)`, `LN(mu, sigma)`, `U(min, max)`, `N.CI(lower, upper[, confidence])`, and `LN.CI(lower, upper[, confidence])`.
 
 GaussFormula is ideal for:
 - Custom spreadsheet-like apps
@@ -58,7 +58,7 @@ const gf = HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' });
 const sheetName = gf.addSheet('Demo');
 const sheetId = gf.getSheetId(sheetName);
 
-gf.setCellContents({ sheet: sheetId, row: 0, col: 0 }, [['N.CI(1, 2, 0.95)', '3', '=A1+B1', '=A1*B1']]);
+gf.setCellContents({ sheet: sheetId, row: 0, col: 0 }, [['N.CI(1, 2)', '3', '=A1+B1', '=A1*B1']]);
 
 console.log(gf.getCellValue({ sheet: sheetId, row: 0, col: 2 })); // SampledDistribution
 console.log(gf.getCellValue({ sheet: sheetId, row: 0, col: 3 })); // SampledDistribution
@@ -74,13 +74,13 @@ GaussFormula extends HyperFormula with first-class support for explicit uncertai
 
 - `N(mean, variance)` uses normal-distribution parameters directly.
 - `LN(mu, sigma)` uses log-space parameters: if `X ~ LN(mu, sigma)`, then `ln(X) ~ N(mu, sigma^2)`. `mu` and `sigma` are not the mean and standard deviation of `X`.
-- Prefer `LN.CI(lower, upper, confidence)` for user-facing lognormal inputs because the bounds are in the original value scale.
-- `N.CI(lower, upper, confidence)` derives a normal distribution from a value-scale confidence interval.
+- Prefer `LN.CI(lower, upper[, confidence])` for user-facing lognormal inputs because the bounds are in the original value scale.
+- `N.CI(lower, upper[, confidence])` derives a normal distribution from a value-scale confidence interval.
 - `U(min, max)` represents a uniform range on the original value scale.
 
 **Example:**
 
-- `A1 -> N.CI(1, 2, 0.95)`
+- `A1 -> N.CI(1, 2)`
 - `=A1 + 3` returns a sampled distribution
 - `=A1 * 3` returns a sampled distribution
 

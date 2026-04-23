@@ -48,13 +48,38 @@ describe('explicit distribution constructors', () => {
     expect(normal.variance).toBeCloseTo(Math.pow(1 / (2 * zScore95), 2), 12)
     expect(normal.source).toBe('ci')
     expect(normal.confidenceLevel).toBe(95)
-    expect(engine.getCellSerialized(adr('A1'))).toBe('N.CI(1.00, 2.00, 0.95)')
+    expect(engine.getCellSerialized(adr('A1'))).toBe('N.CI(1.00, 2.00)')
 
     expect(lognormal.mu).toBeCloseTo(Math.log(2) / 2, 8)
     expect(lognormal.sigma).toBeCloseTo(Math.log(2) / (2 * zScore95), 12)
     expect(lognormal.source).toBe('ci')
     expect(lognormal.confidenceLevel).toBe(95)
-    expect(engine.getCellSerialized(adr('B1'))).toBe('LN.CI(1.00, 2.00, 0.95)')
+    expect(engine.getCellSerialized(adr('B1'))).toBe('LN.CI(1.00, 2.00)')
+  })
+
+  it('defaults confidence interval constructors to 95 percent when confidence is omitted', () => {
+    const engine = HyperFormula.buildFromArray([
+      ['N.CI(1, 2)', 'LN.CI(1, 2)', '=N.CI(1, 2)+1', '=LN.CI(1, 2)+1'],
+    ])
+
+    const normal = expectDistribution(engine.getCellValue(adr('A1')), 'normal')
+    const lognormal = expectDistribution(engine.getCellValue(adr('B1')), 'lognormal')
+    const zScore95 = 1.9599639845400545
+
+    expect(normal.mean).toBe(1.5)
+    expect(normal.variance).toBeCloseTo(Math.pow(1 / (2 * zScore95), 2), 12)
+    expect(normal.source).toBe('ci')
+    expect(normal.confidenceLevel).toBe(95)
+    expect(engine.getCellSerialized(adr('A1'))).toBe('N.CI(1.00, 2.00)')
+
+    expect(lognormal.mu).toBeCloseTo(Math.log(2) / 2, 8)
+    expect(lognormal.sigma).toBeCloseTo(Math.log(2) / (2 * zScore95), 12)
+    expect(lognormal.source).toBe('ci')
+    expect(lognormal.confidenceLevel).toBe(95)
+    expect(engine.getCellSerialized(adr('B1'))).toBe('LN.CI(1.00, 2.00)')
+
+    expect(engine.getCellValue(adr('C1'))).toBeInstanceOf(SampledDistribution)
+    expect(engine.getCellValue(adr('D1'))).toBeInstanceOf(SampledDistribution)
   })
 
   it('uses the exact normal quantile for non-table confidence levels', () => {
@@ -69,6 +94,7 @@ describe('explicit distribution constructors', () => {
     expect(normal.mean).toBe(20)
     expect(normal.variance).toBeCloseTo(std * std, 12)
     expect(normal.confidenceLevel).toBe(93)
+    expect(engine.getCellSerialized(adr('A1'))).toBe('N.CI(18.00, 22.00, 0.93)')
   })
 
   it('supports explicit distribution constructors inside formulas', () => {
@@ -83,7 +109,7 @@ describe('explicit distribution constructors', () => {
 
   it('propagates explicit distribution cell references through arithmetic', () => {
     const engine = HyperFormula.buildFromArray([
-      ['N.CI(18, 22, 0.95)', '=A1*2', '=A1+2', '=A1/2'],
+      ['N.CI(18, 22)', '=A1*2', '=A1+2', '=A1/2'],
     ])
 
     expect(engine.getCellValue(adr('A1'))).toBeInstanceOf(DistributionNumber)

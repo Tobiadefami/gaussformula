@@ -7,7 +7,7 @@ simulation trial and returns a `SampledDistribution`.
 For example:
 
 ```text
-A1 = N.CI(1, 2, 0.95)
+A1 = N.CI(1, 2)
 =SQRT(A1)
 ```
 

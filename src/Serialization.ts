@@ -11,6 +11,7 @@ import {
 } from './DependencyGraph'
 import { CellError, ErrorType } from './Cell'
 import {
+  DEFAULT_CONFIDENCE_LEVEL,
   DistributionNumber,
   EmptyValue,
   InterpreterValue,
@@ -130,15 +131,18 @@ export class Serialization {
     const confidence = value.confidenceLevel === undefined
       ? undefined
       : (value.confidenceLevel > 1 ? value.confidenceLevel / 100 : value.confidenceLevel)
+    const confidenceArgument = value.confidenceLevel === DEFAULT_CONFIDENCE_LEVEL
+      ? ''
+      : `, ${confidence?.toFixed(2)}`
     switch (value.kind) {
       case 'normal':
         if (value.source === 'ci' && value.lower !== undefined && value.upper !== undefined && value.confidenceLevel !== undefined) {
-          return `N.CI(${value.lower.toFixed(2)}, ${value.upper.toFixed(2)}, ${confidence?.toFixed(2)})`
+          return `N.CI(${value.lower.toFixed(2)}, ${value.upper.toFixed(2)}${confidenceArgument})`
         }
         return `N(${(value.mean ?? 0).toFixed(2)}, ${(value.variance ?? 0).toFixed(2)})`
       case 'lognormal':
         if (value.source === 'ci' && value.lower !== undefined && value.upper !== undefined && value.confidenceLevel !== undefined) {
-          return `LN.CI(${value.lower.toFixed(2)}, ${value.upper.toFixed(2)}, ${confidence?.toFixed(2)})`
+          return `LN.CI(${value.lower.toFixed(2)}, ${value.upper.toFixed(2)}${confidenceArgument})`
         }
         return `LN(${(value.mu ?? 0).toFixed(2)}, ${(value.sigma ?? 0).toFixed(2)})`
       case 'uniform':
