@@ -4,7 +4,8 @@
  */
 
 import {Config} from '../Config'
-import {CellError} from '../Cell'
+import {CellError, ErrorType} from '../Cell'
+import {ErrorMessage} from '../error-message'
 import {SimpleRangeValue} from '../SimpleRangeValue'
 import {
   DistributionNumber,
@@ -69,6 +70,50 @@ export const sampleAwareAggregate = (
 }
 
 /**
+ * Applies a unary numeric transform to each sample when the input is uncertain.
+ */
+export const sampleAwareUnaryPointwise = (
+  value: ExtendedNumber,
+  config: Config,
+  transform: (value: number) => number | CellError,
+): SampledDistribution | CellError | undefined => {
+  if (!isUncertainValue(value)) {
+    return undefined
+  }
+
+  return sampleAwareAggregate([value], config, ([sample]) => validPointwiseResult(transform(sample)))
+}
+
+/**
+ * Applies a binary numeric transform to aligned samples when any input is uncertain.
+ */
+export const sampleAwareBinaryPointwise = (
+  left: ExtendedNumber,
+  right: ExtendedNumber,
+  config: Config,
+  transform: (left: number, right: number) => number | CellError,
+): SampledDistribution | CellError | undefined => {
+  return sampleAwareAggregate([left, right], config, ([leftSample, rightSample]) =>
+    validPointwiseResult(transform(leftSample, rightSample))
+  )
+}
+
+/**
+ * Applies a ternary numeric transform to aligned samples when any input is uncertain.
+ */
+export const sampleAwareTernaryPointwise = (
+  first: ExtendedNumber,
+  second: ExtendedNumber,
+  third: ExtendedNumber,
+  config: Config,
+  transform: (first: number, second: number, third: number) => number | CellError,
+): SampledDistribution | CellError | undefined => {
+  return sampleAwareAggregate([first, second, third], config, ([firstSample, secondSample, thirdSample]) =>
+    validPointwiseResult(transform(firstSample, secondSample, thirdSample))
+  )
+}
+
+/**
  * Collects numeric values from scalar arguments and ranges using exact range semantics.
  */
 export const collectExactUncertaintyValues = (
@@ -126,4 +171,15 @@ const collectExactScalarValues = (args: InternalScalarValue[]): ExtendedNumber[]
   }
 
   return values
+}
+
+const validPointwiseResult = (value: number | CellError): number | CellError => {
+  if (value instanceof CellError) {
+    return value
+  }
+  if (!Number.isFinite(value)) {
+    return new CellError(ErrorType.NUM, ErrorMessage.NaN)
+  }
+
+  return value === 0 ? 0 : value
 }

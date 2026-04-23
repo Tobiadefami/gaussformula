@@ -5,7 +5,8 @@
 
 import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
-import {InterpreterValue} from '../InterpreterValue'
+import {ExtendedNumber, getRawValue, InterpreterValue} from '../InterpreterValue'
+import {sampleAwareUnaryPointwise} from '../UncertaintyValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
 export const PI = parseFloat(Math.PI.toFixed(14))
@@ -19,7 +20,7 @@ export class MathConstantsPlugin extends FunctionPlugin implements FunctionPlugi
     'SQRTPI': {
       method: 'sqrtpi',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER, minValue: 0}
+        {argumentType: FunctionArgumentType.NUMBER, minValue: 0, passSubtype: true}
       ],
     },
   }
@@ -32,7 +33,9 @@ export class MathConstantsPlugin extends FunctionPlugin implements FunctionPlugi
 
   public sqrtpi(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('SQRTPI'),
-      (arg: number) => Math.sqrt(PI * arg)
+      (arg: ExtendedNumber) =>
+        sampleAwareUnaryPointwise(arg, this.config, (value) => Math.sqrt(PI * value))
+        ?? Math.sqrt(PI * getRawValue(arg))
     )
   }
 }

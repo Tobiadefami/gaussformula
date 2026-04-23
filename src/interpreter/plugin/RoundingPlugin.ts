@@ -7,7 +7,12 @@ import {CellError, ErrorType} from '../../Cell'
 import {ErrorMessage} from '../../error-message'
 import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
-import {InterpreterValue} from '../InterpreterValue'
+import {ExtendedNumber, getRawValue, InterpreterValue} from '../InterpreterValue'
+import {
+  sampleAwareBinaryPointwise,
+  sampleAwareTernaryPointwise,
+  sampleAwareUnaryPointwise,
+} from '../UncertaintyValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
 export function findNextOddNumber(arg: number): number {
@@ -25,84 +30,84 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
     'ROUNDUP': {
       method: 'roundup',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0, passSubtype: true},
       ],
     },
     'ROUNDDOWN': {
       method: 'rounddown',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0, passSubtype: true},
       ],
     },
     'ROUND': {
       method: 'round',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0, passSubtype: true},
       ],
     },
     'INT': {
       method: 'intFunc',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER}
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true}
       ],
     },
     'EVEN': {
       method: 'even',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER}
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true}
       ],
     },
     'ODD': {
       method: 'odd',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER}
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true}
       ],
     },
     'CEILING.MATH': {
       method: 'ceilingmath',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 1},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 1, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0, passSubtype: true},
       ],
     },
     'CEILING': {
       method: 'ceiling',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
       ],
     },
     'CEILING.PRECISE': {
       method: 'ceilingprecise',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 1},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 1, passSubtype: true},
       ],
     },
     'FLOOR.MATH': {
       method: 'floormath',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 1},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 1, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 0, passSubtype: true},
       ],
     },
     'FLOOR': {
       method: 'floor',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
       ],
     },
     'FLOOR.PRECISE': {
       method: 'floorprecise',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER},
-        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 1},
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true},
+        {argumentType: FunctionArgumentType.NUMBER, defaultValue: 1, passSubtype: true},
       ],
     },
   }
@@ -113,7 +118,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public roundup(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('ROUNDDOWN'), (numberToRound: number, places: number): number => {
+    return this.runBinaryPointwise(ast, state, 'ROUNDDOWN', (numberToRound: number, places: number): number => {
       const placesMultiplier = Math.pow(10, places)
       if (numberToRound < 0) {
         return -Math.ceil(-numberToRound * placesMultiplier) / placesMultiplier
@@ -124,7 +129,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public rounddown(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('ROUNDDOWN'), (numberToRound: number, places: number): number => {
+    return this.runBinaryPointwise(ast, state, 'ROUNDDOWN', (numberToRound: number, places: number): number => {
       const placesMultiplier = Math.pow(10, places)
       if (numberToRound < 0) {
         return -Math.floor(-numberToRound * placesMultiplier) / placesMultiplier
@@ -135,7 +140,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public round(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('ROUND'), (numberToRound: number, places: number): number => {
+    return this.runBinaryPointwise(ast, state, 'ROUND', (numberToRound: number, places: number): number => {
       const placesMultiplier = Math.pow(10, places)
       if (numberToRound < 0) {
         return -Math.round(-numberToRound * placesMultiplier) / placesMultiplier
@@ -146,7 +151,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public intFunc(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('INT'), (coercedNumberToRound) => {
+    return this.runUnaryPointwise(ast, state, 'INT', (coercedNumberToRound) => {
       if (coercedNumberToRound < 0) {
         return -Math.floor(-coercedNumberToRound)
       } else {
@@ -156,7 +161,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public even(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('EVEN'), (coercedNumberToRound) => {
+    return this.runUnaryPointwise(ast, state, 'EVEN', (coercedNumberToRound) => {
       if (coercedNumberToRound < 0) {
         return -findNextEvenNumber(-coercedNumberToRound)
       } else {
@@ -166,7 +171,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public odd(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('ODD'), (coercedNumberToRound) => {
+    return this.runUnaryPointwise(ast, state, 'ODD', (coercedNumberToRound) => {
       if (coercedNumberToRound < 0) {
         return -findNextOddNumber(-coercedNumberToRound)
       } else {
@@ -176,7 +181,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public ceilingmath(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('CEILING.MATH'),
+    return this.runTernaryPointwise(ast, state, 'CEILING.MATH',
       (value: number, significance: number, mode: number) => {
         if (significance === 0 || value === 0) {
           return 0
@@ -192,7 +197,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public ceiling(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('CEILING'),
+    return this.runBinaryPointwise(ast, state, 'CEILING',
       (value: number, significance: number) => {
         if (value === 0) {
           return 0
@@ -210,7 +215,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public ceilingprecise(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('CEILING.PRECISE'),
+    return this.runBinaryPointwise(ast, state, 'CEILING.PRECISE',
       (value: number, significance: number) => {
         if (significance === 0 || value === 0) {
           return 0
@@ -221,7 +226,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public floormath(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('FLOOR.MATH'),
+    return this.runTernaryPointwise(ast, state, 'FLOOR.MATH',
       (value: number, significance: number, mode: number) => {
         if (significance === 0 || value === 0) {
           return 0
@@ -237,7 +242,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public floor(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('FLOOR'),
+    return this.runBinaryPointwise(ast, state, 'FLOOR',
       (value: number, significance: number) => {
         if (value === 0) {
           return 0
@@ -255,7 +260,7 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
   }
 
   public floorprecise(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('FLOOR.PRECISE'),
+    return this.runBinaryPointwise(ast, state, 'FLOOR.PRECISE',
       (value: number, significance: number) => {
         if (significance === 0 || value === 0) {
           return 0
@@ -264,5 +269,39 @@ export class RoundingPlugin extends FunctionPlugin implements FunctionPluginType
         significance = Math.abs(significance)
         return Math.floor(value / significance) * significance
       })
+  }
+
+  private runUnaryPointwise(
+    ast: ProcedureAst,
+    state: InterpreterState,
+    metadataName: string,
+    transform: (value: number) => number | CellError,
+  ): InterpreterValue {
+    return this.runFunction(ast.args, state, this.metadata(metadataName), (value: ExtendedNumber) =>
+      sampleAwareUnaryPointwise(value, this.config, transform) ?? transform(getRawValue(value))
+    )
+  }
+
+  private runBinaryPointwise(
+    ast: ProcedureAst,
+    state: InterpreterState,
+    metadataName: string,
+    transform: (left: number, right: number) => number | CellError,
+  ): InterpreterValue {
+    return this.runFunction(ast.args, state, this.metadata(metadataName), (left: ExtendedNumber, right: ExtendedNumber) =>
+      sampleAwareBinaryPointwise(left, right, this.config, transform) ?? transform(getRawValue(left), getRawValue(right))
+    )
+  }
+
+  private runTernaryPointwise(
+    ast: ProcedureAst,
+    state: InterpreterState,
+    metadataName: string,
+    transform: (first: number, second: number, third: number) => number | CellError,
+  ): InterpreterValue {
+    return this.runFunction(ast.args, state, this.metadata(metadataName), (first: ExtendedNumber, second: ExtendedNumber, third: ExtendedNumber) =>
+      sampleAwareTernaryPointwise(first, second, third, this.config, transform)
+      ?? transform(getRawValue(first), getRawValue(second), getRawValue(third))
+    )
   }
 }

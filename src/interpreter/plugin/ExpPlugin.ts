@@ -5,7 +5,8 @@
 
 import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
-import {InterpreterValue} from '../InterpreterValue'
+import {ExtendedNumber, getRawValue, InterpreterValue} from '../InterpreterValue'
+import {sampleAwareUnaryPointwise} from '../UncertaintyValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
 export class ExpPlugin extends FunctionPlugin implements FunctionPluginTypecheck<ExpPlugin> {
@@ -13,7 +14,7 @@ export class ExpPlugin extends FunctionPlugin implements FunctionPluginTypecheck
     'EXP': {
       method: 'exp',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER}
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true}
       ],
     },
   }
@@ -26,6 +27,8 @@ export class ExpPlugin extends FunctionPlugin implements FunctionPluginTypecheck
    * @param state
    */
   public exp(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('EXP'), Math.exp)
+    return this.runFunction(ast.args, state, this.metadata('EXP'), (arg: ExtendedNumber) =>
+      sampleAwareUnaryPointwise(arg, this.config, Math.exp) ?? Math.exp(getRawValue(arg))
+    )
   }
 }

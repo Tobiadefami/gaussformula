@@ -15,6 +15,7 @@ Feature-specific behavior is documented in:
 
 - `aggregate-functions.md`
 - `statistical-aggregate-functions.md`
+- `pointwise-functions.md`
 - `sampling-policies.md`
 
 ## Phases

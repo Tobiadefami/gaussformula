@@ -5,7 +5,7 @@ lost between implementation sessions.
 
 ## Current Status
 
-Phases 1 and 2 are implemented.
+Phases 1, 2, and 3 are implemented.
 
 Implemented behavior:
 
@@ -22,6 +22,11 @@ Implemented behavior:
 - `VAR.S`, `VAR.P`, `VAR`, `STDEV.S`, `STDEV.P`, `STDEV`, `MEDIAN`, `LARGE`,
   `SMALL`, `AVEDEV`, `DEVSQ`, `GEOMEAN`, and `HARMEAN` return
   `SampledDistribution` when any aggregate input is uncertain.
+- `ABS`, `SQRT`, `EXP`, `LN`, `LOG`, and `LOG10` return
+  `SampledDistribution` when any numeric argument is uncertain.
+- Rounding, trigonometric, hyperbolic, inverse trigonometric, and `SQRTPI`
+  functions in the Phase 3 scope return `SampledDistribution` when any numeric
+  argument is uncertain.
 
 Primary implementation files:
 
@@ -31,12 +36,21 @@ Primary implementation files:
 - `src/interpreter/plugin/SumprodPlugin.ts`
 - `src/interpreter/plugin/MedianPlugin.ts`
 - `src/interpreter/plugin/StatisticalAggregationPlugin.ts`
+- `src/interpreter/plugin/AbsPlugin.ts`
+- `src/interpreter/plugin/SqrtPlugin.ts`
+- `src/interpreter/plugin/ExpPlugin.ts`
+- `src/interpreter/plugin/LogarithmPlugin.ts`
+- `src/interpreter/plugin/RoundingPlugin.ts`
+- `src/interpreter/plugin/TrigonometryPlugin.ts`
+- `src/interpreter/plugin/MathConstantsPlugin.ts`
 
 Primary tests:
 
 - `test/interpreter/uncertainty-value.spec.ts`
 - `test/interpreter/sample-aware-aggregates.spec.ts`
 - `test/interpreter/sample-aware-statistical-aggregates.spec.ts`
+- `test/interpreter/sample-aware-pointwise-functions.spec.ts`
+- `test/interpreter/sample-aware-rounding-trigonometry.spec.ts`
 - Existing aggregate and distribution tests for `SUM`, `AVERAGE`, `MIN`, `MAX`,
   `PRODUCT`, `SUMSQ`, `SUMPRODUCT`, distribution constructors, and distribution
   arithmetic.
@@ -107,7 +121,7 @@ Important design checks:
 
 ## Phase 3: Pointwise Numeric Functions
 
-Status: Not started.
+Status: Implemented.
 
 Candidate functions:
 
@@ -126,11 +140,25 @@ Policy to implement:
 When any argument is uncertain, apply the function to each sample and return a
 `SampledDistribution`.
 
+Implemented behavior:
+
+- `ABS`, `SQRT`, `EXP`, `LN`, `LOG`, `LOG10`, all Phase 3 rounding functions,
+  all Phase 3 trigonometric and hyperbolic functions, and `SQRTPI` apply the
+  numeric transform per simulation trial.
+- `LOG`, `ATAN2`, and the multi-argument rounding functions support
+  uncertainty in any numeric argument.
+- Deterministic inputs keep existing scalar behavior.
+- Non-finite sampled results return the existing `NUM` / `NaN` error.
+
 Important design checks:
 
 - Domain errors must be handled per function. For example, `SQRT` and `LN`
   cannot silently accept invalid samples.
 - Functions with multiple numeric arguments need explicit alignment rules.
+
+Remaining work:
+
+- None for the current Phase 3 scope.
 
 ## Phase 4: Comparisons And Conditionals
 
