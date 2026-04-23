@@ -41,6 +41,7 @@ import {NamedExpressions} from '../NamedExpressions'
 import {Serialization} from '../Serialization'
 import {SimpleRangeValue} from '../SimpleRangeValue'
 import {Statistics} from '../statistics/Statistics'
+import {sampleAwareScalarBooleanResult} from './UncertaintyValue'
 
 export class Interpreter {
   public readonly criterionBuilder: CriterionBuilder
@@ -271,22 +272,22 @@ export class Interpreter {
   }
 
   private equalOp = (arg1: InternalScalarValue, arg2: InternalScalarValue): InternalScalarValue =>
-    binaryErrorWrapper(this.arithmeticHelper.eq, arg1, arg2)
+    this.sampleAwareComparisonOp(arg1, arg2, this.arithmeticHelper.eq)
 
   private notEqualOp = (arg1: InternalScalarValue, arg2: InternalScalarValue): InternalScalarValue =>
-    binaryErrorWrapper(this.arithmeticHelper.neq, arg1, arg2)
+    this.sampleAwareComparisonOp(arg1, arg2, this.arithmeticHelper.neq)
 
   private greaterThanOp = (arg1: InternalScalarValue, arg2: InternalScalarValue): InternalScalarValue =>
-    binaryErrorWrapper(this.arithmeticHelper.gt, arg1, arg2)
+    this.sampleAwareComparisonOp(arg1, arg2, this.arithmeticHelper.gt)
 
   private lessThanOp = (arg1: InternalScalarValue, arg2: InternalScalarValue): InternalScalarValue =>
-    binaryErrorWrapper(this.arithmeticHelper.lt, arg1, arg2)
+    this.sampleAwareComparisonOp(arg1, arg2, this.arithmeticHelper.lt)
 
   private greaterThanOrEqualOp = (arg1: InternalScalarValue, arg2: InternalScalarValue): InternalScalarValue =>
-    binaryErrorWrapper(this.arithmeticHelper.geq, arg1, arg2)
+    this.sampleAwareComparisonOp(arg1, arg2, this.arithmeticHelper.geq)
 
   private lessThanOrEqualOp = (arg1: InternalScalarValue, arg2: InternalScalarValue): InternalScalarValue =>
-    binaryErrorWrapper(this.arithmeticHelper.leq, arg1, arg2)
+    this.sampleAwareComparisonOp(arg1, arg2, this.arithmeticHelper.leq)
 
   private concatOp = (arg1: InternalScalarValue, arg2: InternalScalarValue): InternalScalarValue =>
     binaryErrorWrapper(this.arithmeticHelper.concat,
@@ -336,6 +337,21 @@ export class Interpreter {
       this.arithmeticHelper.coerceScalarToNumberOrError(arg))
 
   private unaryPlusOp = (arg: InternalScalarValue): InternalScalarValue => this.arithmeticHelper.unaryPlus(arg)
+
+  private sampleAwareComparisonOp(
+    arg1: InternalScalarValue,
+    arg2: InternalScalarValue,
+    compare: (left: any, right: any) => boolean,
+  ): InternalScalarValue {
+    return binaryErrorWrapper(
+      (left, right) =>
+        sampleAwareScalarBooleanResult([left, right], this.config, ([sampledLeft, sampledRight]) =>
+          compare(sampledLeft, sampledRight)
+        ) ?? compare(left, right),
+      arg1,
+      arg2
+    )
+  }
 
   private unaryRangeWrapper(op: (arg: InternalScalarValue) => InternalScalarValue, arg: InterpreterValue, state: InterpreterState): InterpreterValue {
     if (arg instanceof SimpleRangeValue && !state.arraysFlag) {
@@ -466,4 +482,3 @@ function wrapperForRootVertex(val: InterpreterValue, vertex?: FormulaVertex): In
   }
   return val
 }
-

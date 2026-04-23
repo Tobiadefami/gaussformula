@@ -6,6 +6,7 @@
 import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
 import {InterpreterValue} from '../InterpreterValue'
+import {sampleAwareScalarBooleanResult} from '../UncertaintyValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
 export class SimpleArithmerticPlugin extends FunctionPlugin implements FunctionPluginTypecheck<SimpleArithmerticPlugin> {
@@ -134,31 +135,46 @@ export class SimpleArithmerticPlugin extends FunctionPlugin implements FunctionP
 
   public eq(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('HF.EQ'),
-      this.arithmeticHelper.eq
+      (left, right) =>
+        sampleAwareScalarBooleanResult([left, right], this.config, ([sampledLeft, sampledRight]) =>
+          this.arithmeticHelper.eq(sampledLeft, sampledRight)
+        ) ?? this.arithmeticHelper.eq(left, right)
     )
   }
 
   public gt(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('HF.GT'),
-      this.arithmeticHelper.gt
+      (left, right) =>
+        sampleAwareScalarBooleanResult([left, right], this.config, ([sampledLeft, sampledRight]) =>
+          this.arithmeticHelper.gt(sampledLeft, sampledRight)
+        ) ?? this.arithmeticHelper.gt(left, right)
     )
   }
 
   public gte(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('HF.GTE'),
-      this.arithmeticHelper.geq
+      (left, right) =>
+        sampleAwareScalarBooleanResult([left, right], this.config, ([sampledLeft, sampledRight]) =>
+          this.arithmeticHelper.geq(sampledLeft, sampledRight)
+        ) ?? this.arithmeticHelper.geq(left, right)
     )
   }
 
   public lt(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('HF.LT'),
-      this.arithmeticHelper.lt
+      (left, right) =>
+        sampleAwareScalarBooleanResult([left, right], this.config, ([sampledLeft, sampledRight]) =>
+          this.arithmeticHelper.lt(sampledLeft, sampledRight)
+        ) ?? this.arithmeticHelper.lt(left, right)
     )
   }
 
   public lte(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('HF.LTE'),
-      this.arithmeticHelper.leq
+      (left, right) =>
+        sampleAwareScalarBooleanResult([left, right], this.config, ([sampledLeft, sampledRight]) =>
+          this.arithmeticHelper.leq(sampledLeft, sampledRight)
+        ) ?? this.arithmeticHelper.leq(left, right)
     )
   }
 
@@ -176,7 +192,10 @@ export class SimpleArithmerticPlugin extends FunctionPlugin implements FunctionP
 
   public ne(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('HF.NE'),
-      this.arithmeticHelper.neq
+      (left, right) =>
+        sampleAwareScalarBooleanResult([left, right], this.config, ([sampledLeft, sampledRight]) =>
+          this.arithmeticHelper.neq(sampledLeft, sampledRight)
+        ) ?? this.arithmeticHelper.neq(left, right)
     )
   }
 

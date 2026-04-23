@@ -12,8 +12,10 @@ import {
   InternalScalarValue,
   InterpreterValue,
   isExtendedNumber,
+  SampledDistribution,
   RawInterpreterValue
 } from '../InterpreterValue'
+import {sampleAwareExactAggregate} from '../UncertaintyValue'
 import {SimpleRangeValue} from '../../SimpleRangeValue'
 import {
   centralF,
@@ -163,6 +165,17 @@ export class StatisticalAggregationPlugin extends FunctionPlugin implements Func
   public avedev(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('AVEDEV'),
       (...args: RawInterpreterValue[]) => {
+        const sampled = this.sampleAwareStatisticalAggregate(args, (values) => {
+          if (values.length === 0) {
+            return new CellError(ErrorType.DIV_BY_ZERO)
+          }
+          const avg = mean(values)
+          return values.reduce((a, b) => a + Math.abs(b - avg), 0) / values.length
+        })
+        if (sampled !== undefined) {
+          return sampled
+        }
+
         const coerced = this.arithmeticHelper.coerceNumbersExactRanges(args)
         if (coerced instanceof CellError) {
           return coerced
@@ -178,6 +191,16 @@ export class StatisticalAggregationPlugin extends FunctionPlugin implements Func
   public devsq(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('DEVSQ'),
       (...args: RawInterpreterValue[]) => {
+        const sampled = this.sampleAwareStatisticalAggregate(args, (values) => {
+          if (values.length === 0) {
+            return 0
+          }
+          return sumsqerr(values)
+        })
+        if (sampled !== undefined) {
+          return sampled
+        }
+
         const coerced = this.arithmeticHelper.coerceNumbersExactRanges(args)
         if (coerced instanceof CellError) {
           return coerced
@@ -192,6 +215,21 @@ export class StatisticalAggregationPlugin extends FunctionPlugin implements Func
   public geomean(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('GEOMEAN'),
       (...args: RawInterpreterValue[]) => {
+        const sampled = this.sampleAwareStatisticalAggregate(args, (values) => {
+          if (values.length === 0) {
+            return new CellError(ErrorType.NUM, ErrorMessage.OneValue)
+          }
+          for (const val of values) {
+            if (val <= 0) {
+              return new CellError(ErrorType.NUM, ErrorMessage.ValueSmall)
+            }
+          }
+          return geomean(values)
+        })
+        if (sampled !== undefined) {
+          return sampled
+        }
+
         const coerced = this.arithmeticHelper.coerceNumbersExactRanges(args)
         if (coerced instanceof CellError) {
           return coerced
@@ -211,6 +249,21 @@ export class StatisticalAggregationPlugin extends FunctionPlugin implements Func
   public harmean(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
     return this.runFunction(ast.args, state, this.metadata('HARMEAN'),
       (...args: RawInterpreterValue[]) => {
+        const sampled = this.sampleAwareStatisticalAggregate(args, (values) => {
+          if (values.length === 0) {
+            return new CellError(ErrorType.NUM, ErrorMessage.OneValue)
+          }
+          for (const val of values) {
+            if (val <= 0) {
+              return new CellError(ErrorType.NUM, ErrorMessage.ValueSmall)
+            }
+          }
+          return values.length / (values.reduce((a, b) => a + 1 / b, 0))
+        })
+        if (sampled !== undefined) {
+          return sampled
+        }
+
         const coerced = this.arithmeticHelper.coerceNumbersExactRanges(args)
         if (coerced instanceof CellError) {
           return coerced
@@ -225,6 +278,18 @@ export class StatisticalAggregationPlugin extends FunctionPlugin implements Func
         }
         return coerced.length / (coerced.reduce((a, b) => a + 1 / b, 0))
       })
+  }
+
+  private sampleAwareStatisticalAggregate(
+    args: RawInterpreterValue[],
+    aggregateSamples: (values: number[]) => number | CellError,
+  ): SampledDistribution | CellError | undefined {
+    return sampleAwareExactAggregate(
+      args,
+      this.config,
+      (arg) => this.arithmeticHelper.coerceScalarToNumberOrError(arg),
+      aggregateSamples,
+    )
   }
 
   public correl(ast: ProcedureAst, state: InterpreterState): InterpreterValue {

@@ -5,7 +5,8 @@
 
 import {ProcedureAst} from '../../parser/Ast'
 import {InterpreterState} from '../InterpreterState'
-import {InterpreterValue} from '../InterpreterValue'
+import {ExtendedNumber, getRawValue, InterpreterValue} from '../InterpreterValue'
+import {sampleAwareUnaryPointwise} from '../UncertaintyValue'
 import {FunctionArgumentType, FunctionPlugin, FunctionPluginTypecheck, ImplementedFunctions} from './FunctionPlugin'
 
 export class SqrtPlugin extends FunctionPlugin implements FunctionPluginTypecheck<SqrtPlugin> {
@@ -13,12 +14,14 @@ export class SqrtPlugin extends FunctionPlugin implements FunctionPluginTypechec
     'SQRT': {
       method: 'sqrt',
       parameters: [
-        {argumentType: FunctionArgumentType.NUMBER}
+        {argumentType: FunctionArgumentType.NUMBER, passSubtype: true}
       ],
     },
   }
 
   public sqrt(ast: ProcedureAst, state: InterpreterState): InterpreterValue {
-    return this.runFunction(ast.args, state, this.metadata('SQRT'), Math.sqrt)
+    return this.runFunction(ast.args, state, this.metadata('SQRT'), (arg: ExtendedNumber) =>
+      sampleAwareUnaryPointwise(arg, this.config, Math.sqrt) ?? Math.sqrt(getRawValue(arg))
+    )
   }
 }
