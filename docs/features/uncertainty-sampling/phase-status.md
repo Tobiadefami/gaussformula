@@ -221,7 +221,7 @@ Important design checks:
 - Sampled `IF`, `IFS`, and `SWITCH` currently support only result branches that
   can be coerced to numbers.
 
-## Phase 5: Conditional Aggregates And Filtering
+## Phase 5: Conditional Aggregates
 
 Status: In progress.
 
@@ -234,12 +234,10 @@ Candidate functions:
 - `COUNTIFS`
 - `MINIFS`
 - `MAXIFS`
-- `FILTER`
-
 Policy to implement:
 
-Conditional aggregate and filtering functions should use sampled conditions when
-the criteria or tested values are uncertain.
+Conditional aggregate functions should use sampled conditions when the criteria
+or tested values are uncertain.
 
 Implemented behavior:
 
@@ -258,7 +256,6 @@ Important design checks:
   a value matches.
 - Criteria parsing should not be duplicated; reuse existing criteria logic where
   possible.
-- `FILTER` remains deferred for a later Phase 5 slice.
 
 ## Before Starting A New Phase
 

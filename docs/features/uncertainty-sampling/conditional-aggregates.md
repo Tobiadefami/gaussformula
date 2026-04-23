@@ -29,7 +29,6 @@ functions evaluate the criteria per simulation trial and return
 
 ## Current boundary
 
-- `FILTER` is still deferred.
 - Sampled conditional aggregates remain numeric-only.
 - Criteria parsing still follows the existing scalar criterion rules; the new
   behavior is that an uncertain scalar criterion is sampled and parsed per

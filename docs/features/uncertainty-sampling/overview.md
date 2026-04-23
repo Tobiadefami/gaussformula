@@ -33,8 +33,8 @@ Feature-specific behavior is documented in:
 4. Comparisons and conditionals:
    sampled comparison masks plus `IF`, `IFS`, `SWITCH`, `AND`, `OR`, `XOR`,
    `NOT`.
-5. Conditional aggregates and filtering:
+5. Conditional aggregates:
    `SUMIF`, `SUMIFS`, `AVERAGEIF`, `COUNTIF`, `COUNTIFS`, `MINIFS`,
-   `MAXIFS`, then `FILTER`.
+   `MAXIFS`.
 
 Each phase must add focused tests and update the relevant feature document.
