@@ -10,7 +10,7 @@
     "url": "https://github.com/Tobiadefami/gaussformula/issues"
   },
   "author": "Tobiadefami",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "packageManager": "pnpm@8.15.9",
   "keywords": [
     "formula",
