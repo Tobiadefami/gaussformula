@@ -491,21 +491,9 @@ export class SampledDistribution extends RichNumber {
   }
 
   public fromNumber(val: number): this {
+    // Post-processing can rewrap rich numbers after scalar cleanup. Preserve the
+    // sample shape while shifting the distribution to the requested mean.
     const newSamples = this.samples.map((s) => s - this.getMean() + val)
     return new SampledDistribution(newSamples, this.config) as this
-  }
-
-  public static fromMeanAndVariance(
-    mean: number,
-    variance: number,
-    config?: Config
-  ): SampledDistribution {
-    const samples = sampleNormalDistribution(
-      mean,
-      variance,
-      config?.sampleSize ?? Config.defaultConfig.sampleSize,
-      createSamplingRandomSource(config?.simulationSeed)
-    )
-    return new SampledDistribution(samples, config)
   }
 }

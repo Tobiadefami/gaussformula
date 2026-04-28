@@ -3,10 +3,7 @@
  * Copyright (c) 2025 Handsoncode. All rights reserved.
  */
 
-import {
-  DistributionNumber,
-  SampledDistribution,
-} from './interpreter/InterpreterValue'
+import { DistributionNumber } from './interpreter/InterpreterValue'
 
 import { Config } from './Config'
 import { Maybe } from './Maybe'
@@ -16,8 +13,6 @@ const DEFAULT_CONFIDENCE_LEVEL = 95
 export class NumberLiteralHelper {
   private readonly numberPattern: RegExp
   private readonly allThousandSeparatorsRegex: RegExp
-  private readonly sampledPattern: RegExp =
-    /^S\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3\u00B2=([+-]?\d*\.?\d+)\)$/
   private readonly normalPattern: RegExp =
     /^N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)$/i
   private readonly lognormalPattern: RegExp =
@@ -47,28 +42,10 @@ export class NumberLiteralHelper {
 
   public numericStringToMaybeNumber(
     input: string
-  ): Maybe<
-    | number
-    | SampledDistribution
-    | DistributionNumber
-  > {
+  ): Maybe<number | DistributionNumber> {
     const explicitDistribution = this.parseExplicitDistribution(input)
     if (explicitDistribution !== undefined) {
       return explicitDistribution
-    }
-
-    // Sampled distribution literal (for results from calculations)
-    const sampledMatch = this.sampledPattern.exec(input)
-    if (sampledMatch) {
-      const mean = Number(sampledMatch[1])
-      const variance = Number(sampledMatch[2])
-      if (!isNaN(mean) && !isNaN(variance)) {
-        return SampledDistribution.fromMeanAndVariance(
-          mean,
-          variance,
-          this.config
-        )
-      }
     }
 
     if (this.numberPattern.test(input)) {

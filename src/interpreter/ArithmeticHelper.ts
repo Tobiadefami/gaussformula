@@ -69,7 +69,7 @@ export class ArithmeticHelper {
    * Near-Zero Value Handling for Uncertainty Arithmetic
    * ========================================================================
    *
-   * When working with confidence intervals and sampled distributions,
+   * When working with uncertain values,
    * some samples may be very close to zero but not exactly zero. This can cause
    * numerical instability issues:
    *
@@ -726,10 +726,8 @@ export class ArithmeticHelper {
       case NumberType.NUMBER_PERCENT:
         return new PercentNumber(value, format)
       case NumberType.NUMBER_SAMPLED:
-        // For sampled distributions, create a new one with a single sample
-        return new SampledDistribution([value], this.config)
       case NumberType.NUMBER_DISTRIBUTION:
-        return DistributionNumber.normal(value, 0, { format })
+        throw new Error('Uncertainty values must be constructed through sample-aware paths.')
    
       default:
         throw new Error(`Unsupported number type: ${type}`)
@@ -838,6 +836,8 @@ export class ArithmeticHelper {
   private getMeanValue(value: InternalNoErrorScalarValue): number {
     if (value instanceof SampledDistribution) {
       return value.getMean()
+    } else if (value instanceof DistributionNumber) {
+      return value.val
     } else if (typeof value === 'number') {
       return value
     } else if (typeof value === 'boolean') {
