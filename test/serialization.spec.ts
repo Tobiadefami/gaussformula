@@ -1,8 +1,30 @@
 import {HyperFormula} from '../src'
 import {CellValueDetailedType} from '../src/Cell'
+import {Config} from '../src/Config'
+import type {DependencyGraph} from '../src/DependencyGraph'
+import type {Exporter} from '../src/Exporter'
+import {SampledDistribution} from '../src/interpreter/InterpreterValue'
+import type {Unparser} from '../src/parser'
+import {Serialization} from '../src/Serialization'
 import {adr} from './testUtils'
 
 describe('serialization', () => {
+  it('serializes sampled distribution results as derived sample summaries, not input syntax', () => {
+    const serialization = new Serialization(
+      {
+        getCell: () => undefined,
+        getScalarValue: () => new SampledDistribution([1, 2, 3], new Config()),
+      } as unknown as DependencyGraph,
+      {} as unknown as Unparser,
+      {} as unknown as Exporter,
+      new Config()
+    )
+
+    expect(serialization.getCellSerialized(adr('A1'))).toBe(
+      'sampled μ=2.00 σ=0.82'
+    )
+  })
+
   it('should not loose sheet information on serialization', () => {
     const engine1 = HyperFormula.buildFromArray([
       [1, '2', 'foo', true, '\'1', '33$', '12/01/15', '1%', '=FOO(', '#DIV/0!', new Date(1995, 11, 17)]
