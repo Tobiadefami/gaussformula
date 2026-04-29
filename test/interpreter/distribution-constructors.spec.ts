@@ -126,14 +126,15 @@ describe('explicit distribution constructors', () => {
     expect(engine.getCellValue(adr('A1'))).toBeCloseTo(1, 12)
   })
 
-  it('does not parse legacy CI or range shorthand as uncertainty inputs', () => {
+  it('does not parse sampled results, legacy CI, or range shorthand as uncertainty inputs', () => {
     const engine = HyperFormula.buildFromArray([
-      ['CI[1, 2]', '[1, 2]', '1 to 2'],
+      ['S(μ=1, σ²=2)', 'CI[1, 2]', '[1, 2]', '1 to 2'],
     ])
 
-    expect(engine.getCellValue(adr('A1'))).toBe('CI[1, 2]')
-    expect(engine.getCellValue(adr('B1'))).toBe('[1, 2]')
-    expect(engine.getCellValue(adr('C1'))).toBe('1 to 2')
+    expect(engine.getCellValue(adr('A1'))).toBe('S(μ=1, σ²=2)')
+    expect(engine.getCellValue(adr('B1'))).toBe('CI[1, 2]')
+    expect(engine.getCellValue(adr('C1'))).toBe('[1, 2]')
+    expect(engine.getCellValue(adr('D1'))).toBe('1 to 2')
   })
 
   it('rejects invalid distribution constructor arguments in formulas', () => {

@@ -1,8 +1,16 @@
+/**
+ * @license
+ * Copyright (c) 2025 Handsoncode. All rights reserved.
+ */
+
 export const DEFAULT_SIMULATION_SEED = 'gaussformula-default-simulation-seed-v1'
 
 export type RandomSource = () => number
 export type SimulationSeed = string
 
+/**
+ * Creates a deterministic pseudo-random source from a stable string seed.
+ */
 export function createSeededRandom(seed: SimulationSeed): RandomSource {
   let state = hashSeed(seed)
 
@@ -15,6 +23,10 @@ export function createSeededRandom(seed: SimulationSeed): RandomSource {
   }
 }
 
+/**
+ * Creates the random source used by sampling so each sampling identity receives
+ * a reproducible random sequence under the same simulation seed.
+ */
 export function createSamplingRandomSource(
   simulationSeed?: SimulationSeed,
   samplingIdentity?: string
@@ -25,6 +37,10 @@ export function createSamplingRandomSource(
   return createSeededRandom(`${seed}:${identity}`)
 }
 
+/**
+ * Converts an arbitrary string seed into the initial integer state consumed by
+ * the deterministic random number generator.
+ */
 function hashSeed(seed: string): number {
   let hash = 1779033703 ^ seed.length
 

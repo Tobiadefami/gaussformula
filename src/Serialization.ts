@@ -119,7 +119,7 @@ export class Serialization {
     } else if (value instanceof SampledDistribution) {
       const mean = value.getMean()
       const variance = value.getVariance()
-      return `S(μ=${mean.toFixed(2)}, σ²=${variance.toFixed(2)})`
+      return `sampled μ=${mean.toFixed(2)} σ=${Math.sqrt(variance).toFixed(2)}`
     } else if (value instanceof CellError) {
       return this.config.translationPackage.getErrorTranslation(value.type)
     } else {

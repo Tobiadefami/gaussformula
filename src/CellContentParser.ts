@@ -11,7 +11,6 @@ import {
   DistributionNumber,
   ExtendedNumber,
   PercentNumber,
-  SampledDistribution,
   TimeNumber,
   cloneNumber,
   getRawValue,
@@ -157,24 +156,6 @@ export class CellContentParser {
         return new CellContent.Error(
           this.config.errorMapping[content.toUpperCase()]
         )
-      }
-
-      // Try to parse as SampledDistribution
-      const sampledMatch =
-        /^S\(\u03BC=([+-]?\d*\.?\d+),\s*\u03C3\u00B2=([+-]?\d*\.?\d+)\)$/.exec(
-          content
-        )
-      if (sampledMatch) {
-        const mean = Number(sampledMatch[1])
-        const variance = Number(sampledMatch[2])
-        if (!isNaN(mean) && !isNaN(variance)) {
-          const sampledDistribution = SampledDistribution.fromMeanAndVariance(
-            mean,
-            variance,
-            this.config
-          )
-          return new CellContent.Number(sampledDistribution)
-        }
       }
 
       let trimmedContent = content.trim()

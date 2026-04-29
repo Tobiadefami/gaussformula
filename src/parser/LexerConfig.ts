@@ -98,22 +98,6 @@ export const ErrorLiteral = createToken({
   name: 'ErrorLiteral',
   pattern: /#[A-Za-z0-9\/]+[?!]?/,
 })
-export const GaussianLiteral = createToken({
-  name: 'GaussianLiteral',
-  pattern: /N\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/,
-})
-export const LogNormalLiteral = createToken({
-  name: 'LogNormalLiteral',
-  pattern: /LN\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/,
-})
-export const UniformLiteral = createToken({
-  name: 'UniformLiteral',
-  pattern: /U\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\)/,
-})
-export const ConfidenceIntervalLiteral = createToken({
-  name: 'ConfidenceIntervalLiteral',
-  pattern: /CI\s*\[\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\]/,
-})
 
 export const RangeSeparator = createToken({
   name: 'RangeSeparator',
